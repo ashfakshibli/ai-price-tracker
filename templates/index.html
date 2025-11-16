@@ -2,145 +2,152 @@
 
 {% block content %}
 
-<!-- Cron Job Status -->
-<div class="card">
-    <h2>⏰ Automatic Tracking</h2>
-    {% if cron_active %}
-        <div class="status-box status-active">
-            <strong>✓ Cron job is active</strong>
-            <p>Tracker runs automatically every hour</p>
-        </div>
-        <form method="POST" action="{{ url_for('disable_cron') }}" style="display: inline;">
-            <button type="submit" class="btn btn-danger btn-sm">Disable Cron</button>
-        </form>
-    {% else %}
-        <div class="status-box status-inactive">
-            <strong>⚠ Cron job is not active</strong>
-            <p>Enable to run tracker automatically every hour</p>
-        </div>
-        <form method="POST" action="{{ url_for('enable_cron') }}" style="display: inline;">
-            <button type="submit" class="btn btn-success btn-sm">Enable Cron</button>
-        </form>
-    {% endif %}
+<div class="grid-layout">
+    <!-- Left Column: Automatic Tracking + Tracked Products -->
+    <div class="left-column">
+        <!-- Cron Job Status -->
+        <div class="card">
+            <h2>⏰ Automatic Tracking</h2>
+            {% if cron_active %}
+                <div class="status-box status-active">
+                    <strong>✓ Cron job is active</strong>
+                    <p>Tracker runs automatically every hour</p>
+                </div>
+                <form method="POST" action="{{ url_for('disable_cron') }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger btn-sm">Disable Cron</button>
+                </form>
+            {% else %}
+                <div class="status-box status-inactive">
+                    <strong>⚠ Cron job is not active</strong>
+                    <p>Enable to run tracker automatically every hour</p>
+                </div>
+                <form method="POST" action="{{ url_for('enable_cron') }}" style="display: inline;">
+                    <button type="submit" class="btn btn-success btn-sm">Enable Cron</button>
+                </form>
+            {% endif %}
 
-    <form method="POST" action="{{ url_for('run_now') }}" style="display: inline; margin-left: 0.5rem;">
-        <button type="submit" class="btn btn-primary btn-sm">Run Now</button>
-    </form>
+            <form method="POST" action="{{ url_for('run_now') }}" style="display: inline; margin-left: 0.5rem;">
+                <button type="submit" class="btn btn-primary btn-sm">Run Now</button>
+            </form>
 
-    <details style="margin-top: 1rem;">
-        <summary style="cursor: pointer; color: #667eea;">Show cron command</summary>
-        <pre style="margin-top: 0.5rem;">{{ cron_command }}</pre>
-    </details>
-</div>
-
-<!-- Add Product Form -->
-<div class="card">
-    <h2>➕ Add New Product</h2>
-    <form method="POST" action="{{ url_for('add_product') }}">
-        <div class="form-group">
-            <label for="name">Product Name</label>
-            <input type="text" id="name" name="name" required placeholder="e.g., MacBook Pro 14 - Fair Condition">
+            <details style="margin-top: 1rem;">
+                <summary style="cursor: pointer; color: #667eea;">Show cron command</summary>
+                <pre style="margin-top: 0.5rem;">{{ cron_command }}</pre>
+            </details>
         </div>
 
-        <div class="form-group">
-            <label for="url">Product URL</label>
-            <input type="url" id="url" name="url" required placeholder="https://...">
+        <!-- Tracked Products -->
+        <div class="card">
+            <h2>📊 Tracked Products ({{ products|length }})</h2>
+
+            {% if products %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Latest Price</th>
+                            <th>Status</th>
+                            <th>Last Checked</th>
+                            <th>History</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>
+                                <strong>{{ product.config.name }}</strong><br>
+                                <small style="color: #888;">{{ product.config.url[:50] }}...</small>
+                            </td>
+                            <td>
+                                {% if product.latest %}
+                                    <strong>${{ "%.2f"|format(product.latest.price) }}</strong>
+                                    {% if product.latest.variants %}
+                                        <br><small>{{ product.latest.variants|length }} variant(s)</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span style="color: #888;">Not checked yet</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if product.latest %}
+                                    {% if product.latest.can_add_to_cart %}
+                                        <span class="badge badge-success">✓ Available</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">✗ Unavailable</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-info">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if product.latest %}
+                                    {{ product.latest.checked_at[:19].replace('T', ' ') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-info">{{ product.history_count }} checks</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('history', product_id=product.id) }}" class="btn btn-primary btn-sm">View History</a>
+                                <a href="{{ url_for('remove_product', product_id=product.id) }}"
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Are you sure you want to remove this product?')">Remove</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p style="color: #888; text-align: center; padding: 2rem;">
+                    No products tracked yet. Add one on the right to get started!
+                </p>
+            {% endif %}
         </div>
+    </div>
 
-        <div class="form-group">
-            <label>
-                <input type="checkbox" name="notify_price" checked>
-                Notify on price drop
-            </label>
+    <!-- Right Column: Add Product Form -->
+    <div class="right-column">
+        <div class="card">
+            <h2>➕ Add New Product</h2>
+            <form method="POST" action="{{ url_for('add_product') }}">
+                <div class="form-group">
+                    <label for="name">Product Name</label>
+                    <input type="text" id="name" name="name" required placeholder="e.g., MacBook Pro 14 - Fair Condition">
+                </div>
+
+                <div class="form-group">
+                    <label for="url">Product URL</label>
+                    <input type="url" id="url" name="url" required placeholder="https://...">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="notify_price" checked>
+                        Notify on price drop
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="notify_availability" checked>
+                        Notify on availability change
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="track_variants" checked>
+                        Track variants (e.g., conditions, sizes)
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Add Product</button>
+            </form>
         </div>
-
-        <div class="form-group">
-            <label>
-                <input type="checkbox" name="notify_availability" checked>
-                Notify on availability change
-            </label>
-        </div>
-
-        <div class="form-group">
-            <label>
-                <input type="checkbox" name="track_variants" checked>
-                Track variants (e.g., conditions, sizes)
-            </label>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Add Product</button>
-    </form>
-</div>
-
-<!-- Tracked Products -->
-<div class="card">
-    <h2>📊 Tracked Products ({{ products|length }})</h2>
-
-    {% if products %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Latest Price</th>
-                    <th>Status</th>
-                    <th>Last Checked</th>
-                    <th>History</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in products %}
-                <tr>
-                    <td>
-                        <strong>{{ product.config.name }}</strong><br>
-                        <small style="color: #888;">{{ product.config.url[:50] }}...</small>
-                    </td>
-                    <td>
-                        {% if product.latest %}
-                            <strong>${{ "%.2f"|format(product.latest.price) }}</strong>
-                            {% if product.latest.variants %}
-                                <br><small>{{ product.latest.variants|length }} variant(s)</small>
-                            {% endif %}
-                        {% else %}
-                            <span style="color: #888;">Not checked yet</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if product.latest %}
-                            {% if product.latest.can_add_to_cart %}
-                                <span class="badge badge-success">✓ Available</span>
-                            {% else %}
-                                <span class="badge badge-danger">✗ Unavailable</span>
-                            {% endif %}
-                        {% else %}
-                            <span class="badge badge-info">Pending</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if product.latest %}
-                            {{ product.latest.checked_at[:19].replace('T', ' ') }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="badge badge-info">{{ product.history_count }} checks</span>
-                    </td>
-                    <td>
-                        <a href="{{ url_for('history', product_id=product.id) }}" class="btn btn-primary btn-sm">View History</a>
-                        <a href="{{ url_for('remove_product', product_id=product.id) }}"
-                           class="btn btn-danger btn-sm"
-                           onclick="return confirm('Are you sure you want to remove this product?')">Remove</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p style="color: #888; text-align: center; padding: 2rem;">
-            No products tracked yet. Add one above to get started!
-        </p>
-    {% endif %}
+    </div>
 </div>
 
 {% endblock %}
