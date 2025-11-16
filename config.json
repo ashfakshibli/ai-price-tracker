@@ -1,0 +1,16 @@
+{
+  "products": [
+    {
+      "name": "MacBook Pro 14 - Fair Condition",
+      "url": "https://www.bestbuy.com/product/apple-macbook-pro-14-inch-laptop-apple-m4-pro-chip-built-for-apple-intelligence-24gb-memory-512gb-ssd-space-black/JJGCQ8HVWL/sku/6602748/openbox?condition=fair",
+      "notify_on_price_drop": true,
+      "notify_on_availability": true,
+      "track_variants": true
+    }
+  ],
+  "check_interval_hours": 1,
+  "notifications": {
+    "terminal": true,
+    "email": false
+  }
+}
