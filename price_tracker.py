@@ -188,8 +188,9 @@ If information is not found, use null for that field. Be precise with numbers.
 """
 
         try:
+            # Using Claude 3.5 Haiku for cost-effectiveness
             message = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-3-5-haiku-20241022",
                 max_tokens=2000,
                 messages=[{
                     "role": "user",

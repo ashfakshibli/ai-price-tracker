@@ -7,7 +7,7 @@ A simple price tracking tool that monitors product prices and availability on we
 - **Real browser automation** using Selenium for JavaScript-heavy sites
 - Waits for pages to fully load before extracting data
 - Tracks product prices, variants, and availability
-- Uses Claude AI to intelligently extract product information from rendered HTML
+- Uses **Claude 3.5 Haiku** (cost-effective) to intelligently extract product information from rendered HTML
 - Stores historical data to detect changes
 - Terminal notifications for price drops or availability changes
 - Robust retry logic with 3-minute timeout for slow-loading sites
@@ -88,6 +88,17 @@ Edit `config.json` to add products to track:
 4. **AI Extraction**: Claude AI analyzes the fully rendered HTML to extract product data
 5. **Change Detection**: Compares with historical data to detect price drops or availability changes
 6. **Notifications**: Alerts you via terminal when changes are detected
+
+## Cost & API Usage
+
+The tracker uses **Claude 3.5 Haiku**, the most cost-effective Claude model:
+
+- **Model**: `claude-3-5-haiku-20241022`
+- **Cost**: ~$0.001 per check (approximate, varies by page size)
+- **Hourly checks**: ~$0.72/month for 1 product
+- **Multiple products**: Cost scales linearly with number of products
+
+Each check sends ~50,000 characters of page content to Claude for analysis. Haiku is fast and affordable while still being highly accurate for data extraction.
 
 ## Troubleshooting
 
