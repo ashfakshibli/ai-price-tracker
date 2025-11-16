@@ -94,6 +94,26 @@ def index():
                          cron_command=cron_command)
 
 
+@app.route('/api/products')
+def api_products():
+    """Get products list as JSON."""
+    products = get_all_products_with_history()
+    return jsonify({'products': products, 'count': len(products)})
+
+
+@app.route('/api/logs')
+def api_logs():
+    """Get recent log entries as JSON."""
+    lines = request.args.get('lines', 50, type=int)
+
+    log_entries = []
+    if Path(LOG_FILE).exists():
+        with open(LOG_FILE, 'r') as f:
+            log_entries = f.readlines()[-lines:]
+
+    return jsonify({'logs': log_entries, 'count': len(log_entries)})
+
+
 @app.route('/add_product', methods=['POST'])
 def add_product():
     """Add a new product to track."""
@@ -104,6 +124,8 @@ def add_product():
     track_variants = request.form.get('track_variants') == 'on'
 
     if not name or not url:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Name and URL are required!'}), 400
         flash('Name and URL are required!', 'error')
         return redirect(url_for('index'))
 
@@ -116,6 +138,9 @@ def add_product():
         'track_variants': track_variants
     })
     save_config(config)
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': f'Added {name} to tracking!', 'product': {'name': name, 'url': url}})
 
     flash(f'Added {name} to tracking!', 'success')
     return redirect(url_for('index'))

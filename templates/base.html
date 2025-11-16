@@ -364,6 +364,264 @@
             overflow-x: auto;
             font-size: 0.85rem;
         }
+
+        /* Loader styles */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loader-overlay.active {
+            display: flex;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            color: white;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 400px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .notification.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        /* Debug Sidebar */
+        .debug-sidebar {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+            transition: right 0.3s ease;
+            z-index: 9998;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .debug-sidebar.open {
+            right: 0;
+        }
+
+        .debug-sidebar-toggle {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px 0 0 6px;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            z-index: 9999;
+            transition: all 0.3s ease;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+        }
+
+        .debug-sidebar-toggle:hover {
+            background: #5568d3;
+            padding-left: 0.7rem;
+        }
+
+        .debug-sidebar-toggle.sidebar-open {
+            right: 400px;
+        }
+
+        .debug-header {
+            padding: 1rem;
+            background: #2d2d2d;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .debug-header h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .debug-close {
+            background: none;
+            border: none;
+            color: #d4d4d4;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .debug-close:hover {
+            background: #404040;
+        }
+
+        .debug-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .debug-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .debug-content::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        .debug-content::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        .debug-content::-webkit-scrollbar-thumb:hover {
+            background: #505050;
+        }
+
+        .log-line {
+            margin-bottom: 0.3rem;
+            word-wrap: break-word;
+        }
+
+        .log-line.info {
+            color: #4fc3f7;
+        }
+
+        .log-line.success {
+            color: #81c784;
+        }
+
+        .log-line.error {
+            color: #e57373;
+        }
+
+        .log-line.warning {
+            color: #ffb74d;
+        }
+
+        .debug-controls {
+            padding: 1rem;
+            background: #2d2d2d;
+            border-top: 1px solid #404040;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .debug-controls button {
+            flex: 1;
+            padding: 0.5rem;
+            background: #404040;
+            border: none;
+            color: #d4d4d4;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .debug-controls button:hover {
+            background: #505050;
+        }
+
+        .debug-controls button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .debug-status {
+            padding: 0.5rem 1rem;
+            background: #2d2d2d;
+            border-bottom: 1px solid #404040;
+            font-size: 0.8rem;
+            color: #888;
+            text-align: center;
+        }
+
+        .debug-status.tracking {
+            background: #1b5e20;
+            color: #81c784;
+        }
+
+        @media (max-width: 768px) {
+            .debug-sidebar {
+                width: 100%;
+                right: -100%;
+            }
+
+            .debug-sidebar-toggle.sidebar-open {
+                right: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -388,5 +646,203 @@
 
         {% block content %}{% endblock %}
     </div>
+
+    <!-- Loader Overlay -->
+    <div class="loader-overlay" id="loaderOverlay">
+        <div style="text-align: center;">
+            <div class="loader"></div>
+            <div class="loader-text" id="loaderText">Processing...</div>
+        </div>
+    </div>
+
+    <!-- Debug Sidebar Toggle -->
+    <button class="debug-sidebar-toggle" id="debugToggle" onclick="toggleDebugSidebar()">
+        Debug Logs
+    </button>
+
+    <!-- Debug Sidebar -->
+    <div class="debug-sidebar" id="debugSidebar">
+        <div class="debug-header">
+            <h3>🔧 Debug Console</h3>
+            <button class="debug-close" onclick="toggleDebugSidebar()">×</button>
+        </div>
+        <div class="debug-status" id="debugStatus">
+            Idle
+        </div>
+        <div class="debug-content" id="debugContent">
+            <div style="color: #888; text-align: center; padding: 2rem;">
+                No logs yet. Add a product or run tracker to see logs.
+            </div>
+        </div>
+        <div class="debug-controls">
+            <button id="autoRefreshBtn" onclick="toggleAutoRefresh()">Auto-refresh: OFF</button>
+            <button onclick="clearDebugLogs()">Clear</button>
+            <button onclick="refreshDebugLogs()">Refresh</button>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Utility functions
+        function showLoader(text = 'Processing...') {
+            document.getElementById('loaderText').textContent = text;
+            document.getElementById('loaderOverlay').classList.add('active');
+        }
+
+        function hideLoader() {
+            document.getElementById('loaderOverlay').classList.remove('active');
+        }
+
+        function showNotification(message, type = 'success') {
+            // Remove any existing notifications
+            const existing = document.querySelectorAll('.notification');
+            existing.forEach(el => el.remove());
+
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // Format timestamp to relative time
+        function timeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return Math.floor(seconds / 60) + ' mins ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
+            if (seconds < 604800) return Math.floor(seconds / 86400) + ' days ago';
+            return date.toLocaleDateString();
+        }
+
+        // Update all relative timestamps
+        function updateTimestamps() {
+            document.querySelectorAll('[data-timestamp]').forEach(el => {
+                el.textContent = timeAgo(el.dataset.timestamp);
+            });
+        }
+
+        // Update timestamps every minute
+        setInterval(updateTimestamps, 60000);
+        // Initial update
+        updateTimestamps();
+
+        // Debug Sidebar Functions
+        let debugAutoRefresh = false;
+        let debugRefreshInterval = null;
+
+        function toggleDebugSidebar() {
+            const sidebar = document.getElementById('debugSidebar');
+            const toggle = document.getElementById('debugToggle');
+            sidebar.classList.toggle('open');
+            toggle.classList.toggle('sidebar-open');
+
+            // Load logs when opening
+            if (sidebar.classList.contains('open')) {
+                refreshDebugLogs();
+            }
+        }
+
+        async function refreshDebugLogs() {
+            try {
+                const response = await fetch('{{ url_for("api_logs") }}?lines=100');
+                const data = await response.json();
+
+                const debugContent = document.getElementById('debugContent');
+
+                if (data.logs && data.logs.length > 0) {
+                    debugContent.innerHTML = data.logs.map(line => {
+                        let className = '';
+                        if (line.includes('ERROR') || line.includes('Failed')) {
+                            className = 'error';
+                        } else if (line.includes('SUCCESS') || line.includes('✓')) {
+                            className = 'success';
+                        } else if (line.includes('WARNING') || line.includes('⚠')) {
+                            className = 'warning';
+                        } else if (line.includes('INFO') || line.includes('→')) {
+                            className = 'info';
+                        }
+
+                        return `<div class="log-line ${className}">${escapeHtmlDebug(line)}</div>`;
+                    }).join('');
+
+                    // Auto-scroll to bottom
+                    debugContent.scrollTop = debugContent.scrollHeight;
+                } else {
+                    debugContent.innerHTML = '<div style="color: #888; text-align: center; padding: 2rem;">No logs available</div>';
+                }
+
+                // Update status
+                const statusEl = document.getElementById('debugStatus');
+                const lastLog = data.logs[data.logs.length - 1] || '';
+                const recentActivity = data.logs.slice(-5).some(log =>
+                    log.includes('Checking') || log.includes('Fetching') || log.includes('Running')
+                );
+
+                if (recentActivity) {
+                    statusEl.textContent = '🔄 Tracking Active';
+                    statusEl.className = 'debug-status tracking';
+                } else {
+                    statusEl.textContent = 'Idle - Last update: ' + new Date().toLocaleTimeString();
+                    statusEl.className = 'debug-status';
+                }
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
+        function clearDebugLogs() {
+            const debugContent = document.getElementById('debugContent');
+            debugContent.innerHTML = '<div style="color: #888; text-align: center; padding: 2rem;">Logs cleared. Refresh to reload.</div>';
+        }
+
+        function toggleAutoRefresh() {
+            debugAutoRefresh = !debugAutoRefresh;
+            const btn = document.getElementById('autoRefreshBtn');
+
+            if (debugAutoRefresh) {
+                btn.textContent = 'Auto-refresh: ON';
+                btn.classList.add('active');
+                debugRefreshInterval = setInterval(refreshDebugLogs, 3000); // Refresh every 3 seconds
+                refreshDebugLogs(); // Immediate refresh
+            } else {
+                btn.textContent = 'Auto-refresh: OFF';
+                btn.classList.remove('active');
+                if (debugRefreshInterval) {
+                    clearInterval(debugRefreshInterval);
+                    debugRefreshInterval = null;
+                }
+            }
+        }
+
+        function escapeHtmlDebug(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-enable debug refresh when tracking starts
+        window.startDebugTracking = function() {
+            if (!debugAutoRefresh) {
+                toggleAutoRefresh();
+            }
+            // Open sidebar if not already open
+            const sidebar = document.getElementById('debugSidebar');
+            if (!sidebar.classList.contains('open')) {
+                toggleDebugSidebar();
+            }
+        };
+    </script>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

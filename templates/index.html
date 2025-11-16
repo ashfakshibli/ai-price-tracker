@@ -89,7 +89,7 @@
                             </td>
                             <td>
                                 {% if product.latest %}
-                                    {{ product.latest.checked_at[:19].replace('T', ' ') }}
+                                    <span data-timestamp="{{ product.latest.checked_at }}">{{ product.latest.checked_at[:19].replace('T', ' ') }}</span>
                                 {% else %}
                                     —
                                 {% endif %}
@@ -125,7 +125,7 @@
     <div class="right-column">
         <div class="card">
             <h2>➕ Add New Product</h2>
-            <form method="POST" action="{{ url_for('add_product') }}">
+            <form method="POST" action="{{ url_for('add_product') }}" id="addProductForm">
                 <div class="form-group">
                     <label for="name">Product Name</label>
                     <input type="text" id="name" name="name" required placeholder="e.g., MacBook Pro 14 - Fair Condition">
@@ -163,4 +163,163 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // AJAX form submission for adding products
+    const addProductForm = document.getElementById('addProductForm');
+
+    if (addProductForm) {
+        addProductForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Show loader
+            showLoader('Adding product...');
+
+            // Get form data
+            const formData = new FormData(addProductForm);
+
+            try {
+                // Send AJAX request
+                const response = await fetch('{{ url_for("add_product") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                hideLoader();
+
+                if (data.success) {
+                    // Show success notification
+                    showNotification(data.message, 'success');
+
+                    // Reset form
+                    addProductForm.reset();
+
+                    // Reload product list
+                    await reloadProductList();
+
+                    // Show debug sidebar with auto-refresh
+                    if (window.startDebugTracking) {
+                        window.startDebugTracking();
+                    }
+                } else {
+                    showNotification(data.message || 'Failed to add product', 'error');
+                }
+            } catch (error) {
+                hideLoader();
+                showNotification('Error adding product: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        });
+    }
+
+    // Reload product list from server
+    async function reloadProductList() {
+        try {
+            const response = await fetch('{{ url_for("api_products") }}');
+            const data = await response.json();
+
+            // Update the products table
+            updateProductsTable(data.products);
+        } catch (error) {
+            console.error('Error reloading products:', error);
+        }
+    }
+
+    // Update products table with new data
+    function updateProductsTable(products) {
+        const tbody = document.querySelector('.card table tbody');
+        const emptyMessage = document.querySelector('.card p[style*="color: #888"]');
+        const tableContainer = document.querySelector('.table-responsive');
+        const productCountEl = document.querySelector('.card h2');
+
+        // Update product count in heading
+        if (productCountEl) {
+            productCountEl.innerHTML = `📊 Tracked Products (${products.length})`;
+        }
+
+        if (products.length === 0) {
+            // Show empty message
+            if (tableContainer) tableContainer.style.display = 'none';
+            if (emptyMessage) emptyMessage.style.display = 'block';
+        } else {
+            // Hide empty message and show table
+            if (emptyMessage) emptyMessage.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
+
+            if (tbody) {
+                tbody.innerHTML = products.map(product => {
+                    const latestPrice = product.latest ? `$${parseFloat(product.latest.price).toFixed(2)}` : '<span style="color: #888;">Not checked yet</span>';
+                    const variants = product.latest && product.latest.variants ? `<br><small>${product.latest.variants.length} variant(s)</small>` : '';
+
+                    const status = product.latest
+                        ? (product.latest.can_add_to_cart
+                            ? '<span class="badge badge-success">✓ Available</span>'
+                            : '<span class="badge badge-danger">✗ Unavailable</span>')
+                        : '<span class="badge badge-info">Pending</span>';
+
+                    const lastChecked = product.latest
+                        ? `<span data-timestamp="${product.latest.checked_at}">${timeAgo(product.latest.checked_at)}</span>`
+                        : '—';
+
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${escapeHtml(product.config.name)}</strong><br>
+                                <small style="color: #888;">${escapeHtml(product.config.url.substring(0, 50))}...</small>
+                            </td>
+                            <td>
+                                ${latestPrice}
+                                ${variants}
+                            </td>
+                            <td>${status}</td>
+                            <td>${lastChecked}</td>
+                            <td>
+                                <span class="badge badge-info">${product.history_count} checks</span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="/history/${product.id}"
+                                       class="btn btn-primary btn-icon"
+                                       title="View History">📊</a>
+                                    <a href="/remove_product/${product.id}"
+                                       class="btn btn-danger btn-icon"
+                                       title="Remove Product"
+                                       onclick="return confirm('Are you sure you want to remove this product?')">🗑️</a>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+    }
+
+    // HTML escape helper
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Add loading state to "Run Now" buttons
+    document.querySelectorAll('form[action="{{ url_for("run_now") }}"]').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            showLoader('Running tracker...');
+
+            // Show debug sidebar with auto-refresh
+            if (window.startDebugTracking) {
+                window.startDebugTracking();
+            }
+
+            // Let form submit normally
+        });
+    });
+</script>
 {% endblock %}

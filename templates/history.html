@@ -46,7 +46,7 @@
                 </tr>
                 <tr>
                     <td><strong>Last Checked:</strong></td>
-                    <td>{{ current.checked_at.replace('T', ' ') }}</td>
+                    <td><span data-timestamp="{{ current.checked_at }}">{{ current.checked_at.replace('T', ' ') }}</span></td>
                 </tr>
             </table>
 
@@ -101,7 +101,7 @@
                 <tbody>
                     {% for entry in history|reverse %}
                     <tr>
-                        <td>{{ entry.checked_at.replace('T', ' ')[:19] }}</td>
+                        <td><span data-timestamp="{{ entry.checked_at }}">{{ entry.checked_at.replace('T', ' ')[:19] }}</span></td>
                         <td>
                             <strong>${{ "%.2f"|format(entry.price) }}</strong>
                             {% if loop.index < history|length %}
