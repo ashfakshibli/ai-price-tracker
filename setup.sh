@@ -11,6 +11,20 @@ fi
 
 echo "✓ Python 3 found: $(python3 --version)"
 
+# Check if Chrome is installed
+if command -v google-chrome &> /dev/null || command -v chromium &> /dev/null || [ -d "/Applications/Google Chrome.app" ]; then
+    echo "✓ Chrome browser found"
+else
+    echo "⚠️  Chrome browser not detected"
+    echo "   This tool requires Chrome for browser automation"
+    echo "   Please install Chrome from: https://www.google.com/chrome/"
+    read -p "Continue anyway? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
 # Create virtual environment (optional but recommended)
 read -p "Do you want to create a virtual environment? (y/n) " -n 1 -r
 echo
@@ -27,6 +41,7 @@ pip install -r requirements.txt
 
 if [ $? -eq 0 ]; then
     echo "✓ Dependencies installed successfully"
+    echo "✓ ChromeDriver will be automatically downloaded on first run"
 else
     echo "❌ Failed to install dependencies"
     exit 1

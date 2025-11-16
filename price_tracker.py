@@ -12,9 +12,16 @@ from pathlib import Path
 from typing import Dict, List, Optional
 import hashlib
 
-import requests
 from bs4 import BeautifulSoup
 from anthropic import Anthropic
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 class PriceTracker:
@@ -40,41 +47,99 @@ class PriceTracker:
         return hashlib.md5(url.encode()).hexdigest()[:12]
 
     def _fetch_webpage(self, url: str, max_retries: int = 3) -> str:
-        """Fetch webpage content with retry logic for slow-loading sites."""
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
-        }
-
+        """Fetch webpage content using Selenium for JavaScript-heavy sites."""
         for attempt in range(max_retries):
+            driver = None
             try:
-                print(f"⏳ Fetching webpage... (attempt {attempt + 1}/{max_retries})")
-                # Increased timeout to 180 seconds (3 minutes) for slow sites like BestBuy
-                response = requests.get(url, headers=headers, timeout=180)
-                response.raise_for_status()
-                print(f"✓ Successfully fetched webpage ({len(response.text)} bytes)")
-                return response.text
-            except requests.Timeout as e:
+                print(f"⏳ Loading webpage in browser... (attempt {attempt + 1}/{max_retries})")
+
+                # Set up Chrome options for headless browsing
+                chrome_options = Options()
+                chrome_options.add_argument('--headless=new')  # New headless mode
+                chrome_options.add_argument('--no-sandbox')
+                chrome_options.add_argument('--disable-dev-shm-usage')
+                chrome_options.add_argument('--disable-gpu')
+                chrome_options.add_argument('--window-size=1920,1080')
+                chrome_options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
+                # Disable images and CSS to speed up loading (optional)
+                prefs = {
+                    'profile.managed_default_content_settings.images': 2,
+                    'profile.default_content_setting_values.notifications': 2,
+                }
+                chrome_options.add_experimental_option('prefs', prefs)
+
+                # Initialize the Chrome driver
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+
+                # Set page load timeout
+                driver.set_page_load_timeout(180)  # 3 minutes
+
+                print(f"   🌐 Navigating to URL...")
+                driver.get(url)
+
+                # Wait for the body to be present
+                print(f"   ⏳ Waiting for page to load...")
+                WebDriverWait(driver, 60).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+
+                # Additional wait for dynamic content to load
+                # Wait for common e-commerce elements to appear
+                print(f"   ⏳ Waiting for content to render...")
+                time.sleep(5)  # Give JavaScript time to execute
+
+                # Try to wait for price-related elements (best effort)
+                try:
+                    WebDriverWait(driver, 20).until(
+                        lambda d: len(d.find_elements(By.XPATH, "//*[contains(text(), '$') or contains(@class, 'price') or contains(@class, 'Price')]")) > 0
+                    )
+                    print(f"   ✓ Price elements detected")
+                except TimeoutException:
+                    print(f"   ⚠️  No price elements detected, but continuing...")
+
+                # Get the fully rendered page source
+                html = driver.page_source
+
+                print(f"✓ Successfully loaded webpage ({len(html)} bytes)")
+                return html
+
+            except TimeoutException as e:
+                print(f"⏱️  Page load timed out")
                 if attempt < max_retries - 1:
-                    wait_time = 5 * (attempt + 1)  # Progressive delay: 5s, 10s, 15s
-                    print(f"⏱️  Request timed out. Waiting {wait_time}s before retry...")
+                    wait_time = 5 * (attempt + 1)
+                    print(f"   Waiting {wait_time}s before retry...")
                     time.sleep(wait_time)
                 else:
-                    print(f"❌ Error: Request timed out after {max_retries} attempts")
-                    print(f"   The website is taking too long to respond (>180 seconds)")
+                    print(f"❌ Error: Page load timed out after {max_retries} attempts")
                     return None
-            except requests.RequestException as e:
-                print(f"❌ Error fetching {url}: {e}")
+
+            except WebDriverException as e:
+                print(f"❌ Browser error: {e}")
                 if attempt < max_retries - 1:
                     wait_time = 5 * (attempt + 1)
                     print(f"   Waiting {wait_time}s before retry...")
                     time.sleep(wait_time)
                 else:
                     return None
+
+            except Exception as e:
+                print(f"❌ Unexpected error: {e}")
+                if attempt < max_retries - 1:
+                    wait_time = 5 * (attempt + 1)
+                    print(f"   Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                else:
+                    return None
+
+            finally:
+                # Always close the browser
+                if driver:
+                    try:
+                        driver.quit()
+                    except:
+                        pass
 
         return None
 
