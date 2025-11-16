@@ -198,34 +198,45 @@ class PriceTracker:
 
                             try:
                                 # FIRST: Check for positive shipping/delivery signals
-                                # Look for selected shipping tile with delivery date
+                                # Look for shipping tiles - must be SELECTED and have delivery date
                                 shipping_tiles = driver.find_elements(By.CSS_SELECTOR,
-                                    "button[data-test-id='shipping'], .c-tile.border-selected button[type='button']"
+                                    "button[data-test-id='shipping'], .c-tile button[type='button']"
                                 )
 
                                 for tile in shipping_tiles:
                                     if tile.is_displayed():
                                         tile_text = tile.text.lower()
-                                        # Check if it has delivery date info
-                                        if any(keyword in tile_text for keyword in ['get it by', 'shipping', 'delivery', 'mon,', 'tue,', 'wed,', 'thu,', 'fri,', 'sat,', 'sun,']):
+
+                                        # Get parent element to check if selected
+                                        try:
+                                            parent = tile.find_element(By.XPATH, "..")
+                                            parent_class = parent.get_attribute('class') if parent else ''
+                                            is_selected = 'border-selected' in parent_class
+                                        except:
+                                            is_selected = False
+
+                                        # Check if tile has delivery date (day of week)
+                                        has_delivery_date = any(day in tile_text for day in
+                                            ['mon,', 'tue,', 'wed,', 'thu,', 'fri,', 'sat,', 'sun,'])
+
+                                        # Check if tile says unavailable
+                                        has_unavailable = 'unavailable' in tile_text
+
+                                        # Valid shipping ONLY if: selected + has delivery date + NO unavailable text
+                                        if is_selected and has_delivery_date and not has_unavailable:
                                             has_shipping_info = True
-                                            print(f"      ✓ Found shipping info: {tile.text[:50]}")
+                                            print(f"      ✓ Found valid shipping: {tile.text[:50]}")
                                             break
-
-                                # Fallback: look for delivery text anywhere
-                                if not has_shipping_info:
-                                    delivery_elements = driver.find_elements(By.XPATH,
-                                        "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'get it by') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ships')]"
-                                    )
-
-                                    for elem in delivery_elements:
-                                        if elem.is_displayed():
-                                            # Make sure it's not in a variant button
-                                            parent_classes = elem.get_attribute('class') or ''
-                                            if 'openbox' not in parent_classes.lower():
-                                                has_shipping_info = True
-                                                print(f"      ✓ Found delivery text: {elem.text[:50]}")
-                                                break
+                                        elif tile_text.strip() and ('shipping' in tile_text or 'delivery' in tile_text):
+                                            # Log why this tile was rejected
+                                            reasons = []
+                                            if not is_selected:
+                                                reasons.append("not selected")
+                                            if not has_delivery_date:
+                                                reasons.append("no delivery date")
+                                            if has_unavailable:
+                                                reasons.append("says unavailable")
+                                            print(f"      ⚠️  Rejected shipping tile ({', '.join(reasons)}): {tile.text[:50]}")
 
                                 # Check for "Add to Cart" button
                                 add_to_cart_buttons = driver.find_elements(By.XPATH,
