@@ -46,8 +46,8 @@ class PriceTracker:
         """Generate a unique ID for a product based on its URL."""
         return hashlib.md5(url.encode()).hexdigest()[:12]
 
-    def _fetch_webpage(self, url: str, max_retries: int = 3) -> str:
-        """Fetch webpage content using Selenium for JavaScript-heavy sites."""
+    def _fetch_webpage_and_variants(self, url: str, max_retries: int = 3) -> Optional[Dict]:
+        """Fetch webpage and interact with variants to get complete data."""
         for attempt in range(max_retries):
             driver = None
             try:
@@ -62,9 +62,8 @@ class PriceTracker:
                 chrome_options.add_argument('--window-size=1920,1080')
                 chrome_options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
-                # Disable images and CSS to speed up loading (optional)
+                # Don't disable images for variant detection
                 prefs = {
-                    'profile.managed_default_content_settings.images': 2,
                     'profile.default_content_setting_values.notifications': 2,
                 }
                 chrome_options.add_experimental_option('prefs', prefs)
@@ -85,12 +84,11 @@ class PriceTracker:
                     EC.presence_of_element_located((By.TAG_NAME, "body"))
                 )
 
-                # Additional wait for dynamic content to load
-                # Wait for common e-commerce elements to appear
+                # Wait for dynamic content to load
                 print(f"   ⏳ Waiting for content to render...")
                 time.sleep(5)  # Give JavaScript time to execute
 
-                # Try to wait for price-related elements (best effort)
+                # Try to wait for price-related elements
                 try:
                     WebDriverWait(driver, 20).until(
                         lambda d: len(d.find_elements(By.XPATH, "//*[contains(text(), '$') or contains(@class, 'price') or contains(@class, 'Price')]")) > 0
@@ -99,11 +97,105 @@ class PriceTracker:
                 except TimeoutException:
                     print(f"   ⚠️  No price elements detected, but continuing...")
 
-                # Get the fully rendered page source
+                # Now interact with variants
+                print(f"   🔍 Checking for variant options...")
+                variants_data = []
+
+                # Try multiple common selectors for variant buttons (BestBuy open box conditions)
+                variant_selectors = [
+                    "button[class*='condition']",
+                    "button[class*='Condition']",
+                    "button[data-track*='condition']",
+                    ".open-box-option button",
+                    "[class*='openBox'] button",
+                    "button[class*='openBox']",
+                    "button[aria-label*='condition']",
+                ]
+
+                variant_buttons = []
+                for selector in variant_selectors:
+                    try:
+                        buttons = driver.find_elements(By.CSS_SELECTOR, selector)
+                        if buttons:
+                            variant_buttons = buttons
+                            print(f"   ✓ Found {len(buttons)} variant options using selector: {selector}")
+                            break
+                    except:
+                        continue
+
+                if variant_buttons:
+                    # Click each variant and extract data
+                    for idx, button in enumerate(variant_buttons):
+                        try:
+                            # Get variant name from button
+                            variant_name = button.text or button.get_attribute('aria-label') or f"Variant {idx+1}"
+                            print(f"   🔘 Checking variant: {variant_name}")
+
+                            # Scroll button into view and click
+                            driver.execute_script("arguments[0].scrollIntoView(true);", button)
+                            time.sleep(0.5)
+
+                            try:
+                                button.click()
+                            except:
+                                # Try JavaScript click if regular click fails
+                                driver.execute_script("arguments[0].click();", button)
+
+                            # Wait for page to update after click
+                            time.sleep(2)
+
+                            # Extract variant-specific data
+                            page_text = driver.find_element(By.TAG_NAME, "body").text
+
+                            # Check if "Add to Cart" button is present and enabled
+                            add_to_cart_available = False
+                            try:
+                                add_to_cart_buttons = driver.find_elements(By.XPATH,
+                                    "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'add to cart')]"
+                                )
+                                for btn in add_to_cart_buttons:
+                                    if btn.is_displayed() and btn.is_enabled():
+                                        add_to_cart_available = True
+                                        break
+                            except:
+                                pass
+
+                            # Check for "Unavailable" or "Sold Out" text
+                            is_unavailable = "unavailable" in page_text.lower() or "sold out" in page_text.lower()
+
+                            # Extract price for this variant
+                            price_text = None
+                            try:
+                                price_elements = driver.find_elements(By.XPATH,
+                                    "//*[contains(@class, 'price') or contains(@class, 'Price')]//*[contains(text(), '$')]"
+                                )
+                                if price_elements:
+                                    price_text = price_elements[0].text
+                            except:
+                                pass
+
+                            variants_data.append({
+                                'name': variant_name.strip(),
+                                'price_text': price_text,
+                                'can_add_to_cart': add_to_cart_available and not is_unavailable,
+                                'is_unavailable': is_unavailable
+                            })
+
+                            print(f"      {'✅' if add_to_cart_available and not is_unavailable else '❌'} Available: {add_to_cart_available and not is_unavailable}, Price: {price_text}")
+
+                        except Exception as e:
+                            print(f"      ⚠️  Error checking variant: {e}")
+                            continue
+
+                # Get the full page HTML for AI analysis
                 html = driver.page_source
 
                 print(f"✓ Successfully loaded webpage ({len(html)} bytes)")
-                return html
+
+                return {
+                    'html': html,
+                    'variants_data': variants_data
+                }
 
             except TimeoutException as e:
                 print(f"⏱️  Page load timed out")
@@ -143,8 +235,8 @@ class PriceTracker:
 
         return None
 
-    def _extract_product_data(self, html: str, url: str, product_name: str) -> Optional[Dict]:
-        """Use Claude AI to extract product data from HTML."""
+    def _extract_product_data(self, html: str, url: str, product_name: str, variants_data: List[Dict] = None) -> Optional[Dict]:
+        """Use Claude AI to extract product data from HTML, enhanced with variant interaction data."""
         # Get the main content using BeautifulSoup to reduce token usage
         soup = BeautifulSoup(html, 'html.parser')
 
@@ -152,23 +244,31 @@ class PriceTracker:
         for tag in soup(['script', 'style', 'noscript', 'header', 'footer', 'nav']):
             tag.decompose()
 
-        # Get text content (first 50000 chars to avoid token limits)
-        text_content = soup.get_text(separator='\n', strip=True)[:50000]
+        # Get text content (first 30000 chars to avoid token limits)
+        text_content = soup.get_text(separator='\n', strip=True)[:30000]
+
+        # Build variant information from interactive checking
+        variant_info = ""
+        if variants_data:
+            variant_info = "\n\nVariant data from interactive checking:\n"
+            for v in variants_data:
+                variant_info += f"- {v['name']}: Price={v['price_text']}, Can Add to Cart={v['can_add_to_cart']}, Unavailable={v['is_unavailable']}\n"
 
         prompt = f"""You are analyzing a product page to extract pricing and availability information.
 
 Product URL: {url}
 Product Name: {product_name}
+{variant_info}
 
-Please analyze the following page content and extract:
-1. Current price (as a number, without currency symbol)
-2. Currency (USD, EUR, etc.)
-3. Available variants (e.g., conditions like "Fair", "Good", "Excellent" or sizes/colors)
-4. For each variant: name, price, and whether it's in stock/available
-5. Whether the product can be added to cart (is available for purchase)
+Please analyze the page content and variant data to extract:
+1. Product name
+2. Default/current displayed price (as a number, without currency symbol)
+3. Currency (USD, EUR, etc.)
+4. Whether the product can be added to cart in its current state
+5. For each variant: extract the exact price as a number and availability status
 
-Page content:
-{text_content}
+Page content (truncated):
+{text_content[:10000]}
 
 Respond ONLY with a valid JSON object in this exact format:
 {{
@@ -184,7 +284,9 @@ Respond ONLY with a valid JSON object in this exact format:
   "extracted_at": "{datetime.now().isoformat()}"
 }}
 
-If information is not found, use null for that field. Be precise with numbers.
+Extract price as a number from text like "$1,899.99" → 1899.99
+Use the variant interaction data provided above for accurate availability.
+If information is not found, use null for that field.
 """
 
         try:
@@ -343,16 +445,17 @@ If information is not found, use null for that field. Be precise with numbers.
             print(f"Checking: {product_config['name']}")
             print(f"{'='*60}")
 
-            # Fetch webpage
-            html = self._fetch_webpage(url)
-            if not html:
+            # Fetch webpage and interact with variants
+            webpage_data = self._fetch_webpage_and_variants(url)
+            if not webpage_data:
                 continue
 
-            # Extract data using AI
+            # Extract data using AI, enhanced with variant interaction data
             current_data = self._extract_product_data(
-                html,
+                webpage_data['html'],
                 url,
-                product_config['name']
+                product_config['name'],
+                webpage_data.get('variants_data', [])
             )
 
             if not current_data:
