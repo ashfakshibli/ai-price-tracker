@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}History - {{ product.name }}{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom: 1rem;">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+</div>
+
+<div class="card">
+    <h2>📈 {{ product.name }}</h2>
+    <p style="color: #888; word-break: break-all;">{{ product.url }}</p>
+
+    <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+        <h3>Current Status</h3>
+        {% if current %}
+            <table>
+                <tr>
+                    <td style="width: 200px;"><strong>Product:</strong></td>
+                    <td>{{ current.product_name }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Price:</strong></td>
+                    <td><strong style="font-size: 1.3rem; color: #667eea;">${{ "%.2f"|format(current.price) }}</strong> {{ current.currency }}</td>
+                </tr>
+                <tr>
+                    <td><strong>In Stock:</strong></td>
+                    <td>
+                        {% if current.in_stock %}
+                            <span class="badge badge-success">✓ Yes</span>
+                        {% else %}
+                            <span class="badge badge-danger">✗ No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Can Add to Cart:</strong></td>
+                    <td>
+                        {% if current.can_add_to_cart %}
+                            <span class="badge badge-success">✓ Yes</span>
+                        {% else %}
+                            <span class="badge badge-danger">✗ No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Last Checked:</strong></td>
+                    <td>{{ current.checked_at.replace('T', ' ') }}</td>
+                </tr>
+            </table>
+
+            {% if current.variants %}
+                <h3 style="margin-top: 1.5rem;">Variants</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variant</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variant in current.variants %}
+                        <tr>
+                            <td><strong>{{ variant.name }}</strong></td>
+                            <td>${{ "%.2f"|format(variant.price) }}</td>
+                            <td>
+                                {% if variant.available %}
+                                    <span class="badge badge-success">✓ Available</span>
+                                {% else %}
+                                    <span class="badge badge-danger">✗ Unavailable</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        {% else %}
+            <p style="color: #888;">No current data available</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>📜 History ({{ history|length }} checks)</h2>
+
+    {% if history %}
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Price</th>
+                        <th>Can Add to Cart</th>
+                        <th>Variants</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in history|reverse %}
+                    <tr>
+                        <td>{{ entry.checked_at.replace('T', ' ')[:19] }}</td>
+                        <td>
+                            <strong>${{ "%.2f"|format(entry.price) }}</strong>
+                            {% if loop.index < history|length %}
+                                {% set prev_entry = history[-(loop.index + 1)] %}
+                                {% if entry.price < prev_entry.price %}
+                                    <span style="color: #28a745;">↓ ${{ "%.2f"|format(prev_entry.price - entry.price) }}</span>
+                                {% elif entry.price > prev_entry.price %}
+                                    <span style="color: #dc3545;">↑ ${{ "%.2f"|format(entry.price - prev_entry.price) }}</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.can_add_to_cart %}
+                                <span class="badge badge-success">✓</span>
+                            {% else %}
+                                <span class="badge badge-danger">✗</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.variants %}
+                                {{ entry.variants|length }} variant(s)
+                                <br>
+                                {% set available_count = entry.variants|selectattr('available')|list|length %}
+                                <small>{{ available_count }} available</small>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            <details>
+                                <summary style="cursor: pointer; color: #667eea;">Show details</summary>
+                                <pre style="margin-top: 0.5rem; font-size: 0.75rem;">{{ entry|tojson(indent=2) }}</pre>
+                            </details>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color: #888; text-align: center; padding: 2rem;">
+            No history data available yet
+        </p>
+    {% endif %}
+</div>
+
+{% endblock %}

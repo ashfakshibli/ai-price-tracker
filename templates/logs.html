@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Tracker Logs{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <h2>📋 Tracker Logs</h2>
+    <p style="color: #888;">Last 500 lines from tracker.log</p>
+
+    {% if logs %}
+        <div style="margin-top: 1rem;">
+            <pre style="max-height: 600px; overflow-y: auto; font-size: 0.85rem; line-height: 1.4;">{% for line in logs %}{{ line }}{% endfor %}</pre>
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <button onclick="location.reload()" class="btn btn-primary btn-sm">Refresh</button>
+            <button onclick="document.querySelector('pre').scrollTop = document.querySelector('pre').scrollHeight"
+                    class="btn btn-secondary btn-sm">Scroll to Bottom</button>
+        </div>
+    {% else %}
+        <p style="color: #888; text-align: center; padding: 2rem;">
+            No logs available yet. Run the tracker at least once to see logs.
+        </p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>💡 Tips</h3>
+    <ul style="line-height: 2;">
+        <li>Logs are automatically updated each time the tracker runs</li>
+        <li>Check logs to see detailed information about each tracking session</li>
+        <li>Look for errors or warnings if products aren't tracking correctly</li>
+        <li>Logs include variant checking details and availability detection</li>
+    </ul>
+</div>
+
+{% endblock %}

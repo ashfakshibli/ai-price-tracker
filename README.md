@@ -5,6 +5,7 @@ A simple price tracking tool that monitors product prices and availability on we
 ## Features
 
 - **Real browser automation** using Selenium for JavaScript-heavy sites
+- **Web dashboard** for managing tracked products and viewing history
 - Waits for pages to fully load before extracting data
 - Tracks product prices, variants, and availability
 - Uses **Claude 3.5 Haiku** (cost-effective) to intelligently extract product information from rendered HTML
@@ -13,7 +14,7 @@ A simple price tracking tool that monitors product prices and availability on we
 - Robust retry logic with 3-minute timeout for slow-loading sites
 - Automatic retry with exponential backoff on failures
 - Headless mode (no visible browser window)
-- Easy to run via cron for hourly checks
+- Easy to run via cron for hourly checks (with web UI control)
 
 ## Setup
 
@@ -50,7 +51,48 @@ source ~/.bashrc
 python price_tracker.py
 ```
 
-## Running Hourly (macOS/Linux)
+## Web Dashboard
+
+The tracker includes a web dashboard for easy management:
+
+```bash
+python dashboard.py
+```
+
+Then open http://localhost:5000 in your browser.
+
+### Dashboard Features
+
+- **Add/Remove Products**: Manage tracked products through a web interface
+- **View History**: See price changes and availability history for each product
+- **Cron Management**: Enable/disable hourly tracking with one click
+- **Run Manual Checks**: Trigger tracking runs on demand
+- **View Logs**: See detailed logs from tracker runs
+
+### Dashboard Screenshots
+
+**Main Dashboard:**
+- View all tracked products with current status
+- Add new products with a simple form
+- Enable/disable automatic hourly tracking
+- Run manual checks
+
+**History Page:**
+- View complete price history for each product
+- See variant availability changes over time
+- Track price drops and increases
+- Export data as JSON
+
+## Command Line Usage
+
+### Running Manually
+
+Run the tracker once:
+```bash
+python price_tracker.py
+```
+
+### Running Hourly (macOS/Linux)
 
 Add to your crontab:
 ```bash
