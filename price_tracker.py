@@ -191,21 +191,41 @@ class PriceTracker:
                             except Exception as e:
                                 current_price = button_price
 
-                            # Check availability - look for shipping/delivery messages
+                            # Check availability - prioritize positive signals over negative
                             add_to_cart_available = False
-                            is_unavailable = False
+                            has_shipping_info = False
+                            is_unavailable_main_area = False
 
                             try:
-                                # Check for explicit "Unavailable" message
-                                unavailable_elements = driver.find_elements(By.XPATH,
-                                    "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'unavailable') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'sold out')]"
+                                # FIRST: Check for positive shipping/delivery signals
+                                # Look for selected shipping tile with delivery date
+                                shipping_tiles = driver.find_elements(By.CSS_SELECTOR,
+                                    "button[data-test-id='shipping'], .c-tile.border-selected button[type='button']"
                                 )
 
-                                for elem in unavailable_elements:
-                                    if elem.is_displayed() and elem.text.strip():
-                                        is_unavailable = True
-                                        print(f"      ⚠️  Found unavailable text: {elem.text[:50]}")
-                                        break
+                                for tile in shipping_tiles:
+                                    if tile.is_displayed():
+                                        tile_text = tile.text.lower()
+                                        # Check if it has delivery date info
+                                        if any(keyword in tile_text for keyword in ['get it by', 'shipping', 'delivery', 'mon,', 'tue,', 'wed,', 'thu,', 'fri,', 'sat,', 'sun,']):
+                                            has_shipping_info = True
+                                            print(f"      ✓ Found shipping info: {tile.text[:50]}")
+                                            break
+
+                                # Fallback: look for delivery text anywhere
+                                if not has_shipping_info:
+                                    delivery_elements = driver.find_elements(By.XPATH,
+                                        "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'get it by') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ships')]"
+                                    )
+
+                                    for elem in delivery_elements:
+                                        if elem.is_displayed():
+                                            # Make sure it's not in a variant button
+                                            parent_classes = elem.get_attribute('class') or ''
+                                            if 'openbox' not in parent_classes.lower():
+                                                has_shipping_info = True
+                                                print(f"      ✓ Found delivery text: {elem.text[:50]}")
+                                                break
 
                                 # Check for "Add to Cart" button
                                 add_to_cart_buttons = driver.find_elements(By.XPATH,
@@ -221,28 +241,41 @@ class PriceTracker:
                                             print(f"      ✓ Add to Cart button is enabled")
                                             break
 
-                                # Alternative check: look for shipping/delivery availability
-                                if not is_unavailable:
-                                    delivery_elements = driver.find_elements(By.XPATH,
-                                        "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'get it by') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ships') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'delivery')]"
+                                # ONLY check for "Unavailable" in main product area if no shipping info
+                                if not has_shipping_info:
+                                    # Look for unavailable in main fulfillment area, not variant buttons
+                                    unavailable_elements = driver.find_elements(By.XPATH,
+                                        "//*[not(contains(@class, 'openBox'))]//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'unavailable') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'sold out')]"
                                     )
 
-                                    if delivery_elements:
-                                        for elem in delivery_elements:
-                                            if elem.is_displayed():
-                                                print(f"      ✓ Found delivery info: {elem.text[:50]}")
-                                                break
+                                    for elem in unavailable_elements:
+                                        if elem.is_displayed() and elem.text.strip():
+                                            # Make sure it's not inside a variant button
+                                            elem_classes = elem.get_attribute('class') or ''
+                                            parent = elem.find_element(By.XPATH, "..")
+                                            parent_classes = parent.get_attribute('class') if parent else ''
+
+                                            # Skip if it's in the variant button area
+                                            if 'openbox' in elem_classes.lower() or 'openbox' in parent_classes.lower():
+                                                continue
+
+                                            is_unavailable_main_area = True
+                                            print(f"      ⚠️  Found unavailable in main area: {elem.text[:50]}")
+                                            break
 
                             except Exception as e:
                                 print(f"      ⚠️  Error checking availability: {e}")
 
-                            final_available = add_to_cart_available and not is_unavailable
+                            # Final availability:
+                            # Available if: Add to Cart enabled AND (has shipping OR no unavailable in main area)
+                            final_available = add_to_cart_available and (has_shipping_info or not is_unavailable_main_area)
 
                             variants_data.append({
                                 'name': variant_name,
                                 'price_text': current_price,
                                 'can_add_to_cart': final_available,
-                                'is_unavailable': is_unavailable
+                                'is_unavailable': is_unavailable_main_area,
+                                'has_shipping': has_shipping_info
                             })
 
                             print(f"      {'✅' if final_available else '❌'} Final Status - Available: {final_available}, Price: {current_price}")
