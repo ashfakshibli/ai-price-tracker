@@ -5,6 +5,7 @@ AI-powered price tracker for monitoring product prices and availability.
 
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -127,9 +128,23 @@ class PriceTracker:
                     # Click each variant and extract data
                     for idx, button in enumerate(variant_buttons):
                         try:
-                            # Get variant name from button
-                            variant_name = button.text or button.get_attribute('aria-label') or f"Variant {idx+1}"
-                            print(f"   🔘 Checking variant: {variant_name}")
+                            # Get variant name and price from button
+                            button_full_text = button.text or button.get_attribute('aria-label') or f"Variant {idx+1}"
+
+                            # Parse variant name and price from button text
+                            # Button text is often like "Excellent\n$1,466.99" or "Fair $1,345.99"
+                            lines = button_full_text.strip().split('\n')
+                            variant_name = lines[0].strip()
+
+                            # Try to extract price from button text first
+                            button_price = None
+                            for line in lines:
+                                price_match = re.search(r'\$[\d,]+\.?\d*', line)
+                                if price_match:
+                                    button_price = price_match.group()
+                                    break
+
+                            print(f"   🔘 Checking variant: {variant_name} ({button_price or 'price TBD'})")
 
                             # Scroll button into view and click
                             driver.execute_script("arguments[0].scrollIntoView(true);", button)
@@ -142,46 +157,95 @@ class PriceTracker:
                                 driver.execute_script("arguments[0].click();", button)
 
                             # Wait for page to update after click
-                            time.sleep(2)
+                            time.sleep(3)
 
-                            # Extract variant-specific data
-                            page_text = driver.find_element(By.TAG_NAME, "body").text
-
-                            # Check if "Add to Cart" button is present and enabled
-                            add_to_cart_available = False
+                            # Extract price after page updates (more reliable than button text)
+                            current_price = None
                             try:
+                                # Look for prominent price displays
+                                price_selectors = [
+                                    "[data-testid*='customer-price']",
+                                    ".priceView-hero-price span",
+                                    ".priceView-customer-price span",
+                                    "[class*='price'] [class*='first']",
+                                    "div[class*='price'] span[aria-hidden='true']",
+                                ]
+
+                                for selector in price_selectors:
+                                    try:
+                                        price_elem = driver.find_element(By.CSS_SELECTOR, selector)
+                                        if price_elem and price_elem.is_displayed():
+                                            price_match = re.search(r'\$?[\d,]+\.?\d*', price_elem.text)
+                                            if price_match:
+                                                current_price = price_match.group()
+                                                if not current_price.startswith('$'):
+                                                    current_price = '$' + current_price
+                                                break
+                                    except:
+                                        continue
+
+                                # If no price found via selectors, use button price
+                                if not current_price:
+                                    current_price = button_price
+
+                            except Exception as e:
+                                current_price = button_price
+
+                            # Check availability - look for shipping/delivery messages
+                            add_to_cart_available = False
+                            is_unavailable = False
+
+                            try:
+                                # Check for explicit "Unavailable" message
+                                unavailable_elements = driver.find_elements(By.XPATH,
+                                    "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'unavailable') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'sold out')]"
+                                )
+
+                                for elem in unavailable_elements:
+                                    if elem.is_displayed() and elem.text.strip():
+                                        is_unavailable = True
+                                        print(f"      ⚠️  Found unavailable text: {elem.text[:50]}")
+                                        break
+
+                                # Check for "Add to Cart" button
                                 add_to_cart_buttons = driver.find_elements(By.XPATH,
                                     "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'add to cart')]"
                                 )
+
                                 for btn in add_to_cart_buttons:
                                     if btn.is_displayed() and btn.is_enabled():
-                                        add_to_cart_available = True
-                                        break
-                            except:
-                                pass
+                                        # Check button doesn't have disabled class
+                                        btn_class = btn.get_attribute('class') or ''
+                                        if 'disabled' not in btn_class.lower():
+                                            add_to_cart_available = True
+                                            print(f"      ✓ Add to Cart button is enabled")
+                                            break
 
-                            # Check for "Unavailable" or "Sold Out" text
-                            is_unavailable = "unavailable" in page_text.lower() or "sold out" in page_text.lower()
+                                # Alternative check: look for shipping/delivery availability
+                                if not is_unavailable:
+                                    delivery_elements = driver.find_elements(By.XPATH,
+                                        "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'get it by') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'ships') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'delivery')]"
+                                    )
 
-                            # Extract price for this variant
-                            price_text = None
-                            try:
-                                price_elements = driver.find_elements(By.XPATH,
-                                    "//*[contains(@class, 'price') or contains(@class, 'Price')]//*[contains(text(), '$')]"
-                                )
-                                if price_elements:
-                                    price_text = price_elements[0].text
-                            except:
-                                pass
+                                    if delivery_elements:
+                                        for elem in delivery_elements:
+                                            if elem.is_displayed():
+                                                print(f"      ✓ Found delivery info: {elem.text[:50]}")
+                                                break
+
+                            except Exception as e:
+                                print(f"      ⚠️  Error checking availability: {e}")
+
+                            final_available = add_to_cart_available and not is_unavailable
 
                             variants_data.append({
-                                'name': variant_name.strip(),
-                                'price_text': price_text,
-                                'can_add_to_cart': add_to_cart_available and not is_unavailable,
+                                'name': variant_name,
+                                'price_text': current_price,
+                                'can_add_to_cart': final_available,
                                 'is_unavailable': is_unavailable
                             })
 
-                            print(f"      {'✅' if add_to_cart_available and not is_unavailable else '❌'} Available: {add_to_cart_available and not is_unavailable}, Price: {price_text}")
+                            print(f"      {'✅' if final_available else '❌'} Final Status - Available: {final_available}, Price: {current_price}")
 
                         except Exception as e:
                             print(f"      ⚠️  Error checking variant: {e}")
