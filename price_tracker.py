@@ -6,6 +6,7 @@ AI-powered price tracker for monitoring product prices and availability.
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -38,19 +39,44 @@ class PriceTracker:
         """Generate a unique ID for a product based on its URL."""
         return hashlib.md5(url.encode()).hexdigest()[:12]
 
-    def _fetch_webpage(self, url: str) -> str:
-        """Fetch webpage content."""
+    def _fetch_webpage(self, url: str, max_retries: int = 3) -> str:
+        """Fetch webpage content with retry logic for slow-loading sites."""
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         }
 
-        try:
-            response = requests.get(url, headers=headers, timeout=30)
-            response.raise_for_status()
-            return response.text
-        except requests.RequestException as e:
-            print(f"❌ Error fetching {url}: {e}")
-            return None
+        for attempt in range(max_retries):
+            try:
+                print(f"⏳ Fetching webpage... (attempt {attempt + 1}/{max_retries})")
+                # Increased timeout to 180 seconds (3 minutes) for slow sites like BestBuy
+                response = requests.get(url, headers=headers, timeout=180)
+                response.raise_for_status()
+                print(f"✓ Successfully fetched webpage ({len(response.text)} bytes)")
+                return response.text
+            except requests.Timeout as e:
+                if attempt < max_retries - 1:
+                    wait_time = 5 * (attempt + 1)  # Progressive delay: 5s, 10s, 15s
+                    print(f"⏱️  Request timed out. Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"❌ Error: Request timed out after {max_retries} attempts")
+                    print(f"   The website is taking too long to respond (>180 seconds)")
+                    return None
+            except requests.RequestException as e:
+                print(f"❌ Error fetching {url}: {e}")
+                if attempt < max_retries - 1:
+                    wait_time = 5 * (attempt + 1)
+                    print(f"   Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                else:
+                    return None
+
+        return None
 
     def _extract_product_data(self, html: str, url: str, product_name: str) -> Optional[Dict]:
         """Use Claude AI to extract product data from HTML."""

@@ -8,6 +8,8 @@ A simple price tracking tool that monitors product prices and availability on we
 - Uses Claude AI to intelligently extract product information
 - Stores historical data to detect changes
 - Terminal notifications for price drops or availability changes
+- Robust retry logic with 3-minute timeout for slow-loading sites (like BestBuy)
+- Automatic retry with exponential backoff on failures
 - Easy to run via cron for hourly checks
 
 ## Setup
@@ -58,3 +60,17 @@ Edit `config.json` to add products to track:
 - Tracked data is stored in `data/` directory
 - Each product gets its own JSON file with historical data
 - Notifications are printed to terminal (can be extended for email)
+
+## Troubleshooting
+
+### Slow Websites (BestBuy, etc.)
+
+The tracker is configured to handle slow-loading websites:
+- **Timeout**: 180 seconds (3 minutes) per request
+- **Retries**: Up to 3 attempts with progressive delays (5s, 10s, 15s)
+- **Total time**: Up to 9 minutes for very slow sites
+
+If you still experience timeouts:
+1. Check your internet connection
+2. Try accessing the URL directly in your browser
+3. The website may be blocking automated requests (consider adding delays between checks)
