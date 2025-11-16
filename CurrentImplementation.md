@@ -1,48 +1,54 @@
-# Current Task: Make UI elements responsive with icon buttons
+# Current Task: AJAX auto-reload and background task loader
 
 ## Implementation Plan
 
 ### Goal
-Replace text buttons with icon buttons and ensure all UI elements are responsive.
+- Add product without page reload (AJAX)
+- Show loading spinner during background operations
+- Auto-refresh product list when new product is added
 
 ### Subtasks
 
-1. **Add icon library (using Unicode/Emoji or external library)**
-   - Use Font Awesome or simple Unicode symbols
-   - Add icon mapping for common actions
+1. **Add JavaScript for AJAX form submission**
+   - Intercept form submit event
+   - Send AJAX POST request
+   - Handle response and update UI
 
-2. **Update button styling**
-   - Create icon-only button class
-   - Make buttons display side by side (flexbox)
-   - Add tooltips for accessibility
+2. **Create loader/spinner component**
+   - CSS for spinner animation
+   - Show/hide loader functions
+   - Position loader over relevant sections
 
-3. **Replace text buttons with icons**
-   - View History → 👁️ or 📊
-   - Remove → 🗑️ or ❌
-   - Enable/Disable Cron → ⏰/⏸️
-   - Run Now → ▶️ or 🚀
+3. **Auto-refresh product list**
+   - Fetch updated product list via AJAX
+   - Replace table contents dynamically
+   - Maintain scroll position
 
-4. **Make table responsive**
-   - Stack table cells on mobile
-   - Use horizontal scroll for wide tables
-   - Adjust action buttons layout
+4. **Show background task progress**
+   - Add loading state for "Run Now" button
+   - Show spinner when tracking is running
+   - Poll for completion status
 
 ### Changes Required
 
 **File: templates/base.html**
-- Add CSS for icon buttons
-- Add tooltip styling
-- Update responsive breakpoints
+- Add loader CSS (spinner animation)
+- Add JavaScript section in head or before </body>
 
 **File: templates/index.html**
-- Replace button text with icons
-- Add title attributes for tooltips
-- Update action buttons layout
+- Add product-list container ID
+- Add form ID for AJAX submission
+- Add loader elements
+
+**File: dashboard.py**
+- Add JSON endpoint for product list
+- Return JSON response after adding product
+- Add status endpoint for background tasks
 
 ### Verification
 
-- [ ] Buttons show icons instead of text
-- [ ] Tooltips appear on hover
-- [ ] Buttons are side by side
-- [ ] Table is responsive on mobile
-- [ ] All actions still work correctly
+- [ ] Form submits without page reload
+- [ ] Loader shows during submission
+- [ ] Product list updates automatically
+- [ ] Background tasks show progress
+- [ ] Error handling works correctly
