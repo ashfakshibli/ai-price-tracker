@@ -13,22 +13,28 @@
                     <strong>✓ Cron job is active</strong>
                     <p>Tracker runs automatically every hour</p>
                 </div>
-                <form method="POST" action="{{ url_for('disable_cron') }}" style="display: inline;">
-                    <button type="submit" class="btn btn-danger btn-sm">Disable Cron</button>
-                </form>
+                <div class="btn-group">
+                    <form method="POST" action="{{ url_for('disable_cron') }}">
+                        <button type="submit" class="btn btn-danger btn-icon" title="Disable Cron">⏸️</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('run_now') }}">
+                        <button type="submit" class="btn btn-primary btn-icon" title="Run Now">▶️</button>
+                    </form>
+                </div>
             {% else %}
                 <div class="status-box status-inactive">
                     <strong>⚠ Cron job is not active</strong>
                     <p>Enable to run tracker automatically every hour</p>
                 </div>
-                <form method="POST" action="{{ url_for('enable_cron') }}" style="display: inline;">
-                    <button type="submit" class="btn btn-success btn-sm">Enable Cron</button>
-                </form>
+                <div class="btn-group">
+                    <form method="POST" action="{{ url_for('enable_cron') }}">
+                        <button type="submit" class="btn btn-success btn-icon" title="Enable Cron">▶️</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('run_now') }}">
+                        <button type="submit" class="btn btn-primary btn-icon" title="Run Now">🚀</button>
+                    </form>
+                </div>
             {% endif %}
-
-            <form method="POST" action="{{ url_for('run_now') }}" style="display: inline; margin-left: 0.5rem;">
-                <button type="submit" class="btn btn-primary btn-sm">Run Now</button>
-            </form>
 
             <details style="margin-top: 1rem;">
                 <summary style="cursor: pointer; color: #667eea;">Show cron command</summary>
@@ -41,6 +47,7 @@
             <h2>📊 Tracked Products ({{ products|length }})</h2>
 
             {% if products %}
+                <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
@@ -91,15 +98,21 @@
                                 <span class="badge badge-info">{{ product.history_count }} checks</span>
                             </td>
                             <td>
-                                <a href="{{ url_for('history', product_id=product.id) }}" class="btn btn-primary btn-sm">View History</a>
-                                <a href="{{ url_for('remove_product', product_id=product.id) }}"
-                                   class="btn btn-danger btn-sm"
-                                   onclick="return confirm('Are you sure you want to remove this product?')">Remove</a>
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('history', product_id=product.id) }}"
+                                       class="btn btn-primary btn-icon"
+                                       title="View History">📊</a>
+                                    <a href="{{ url_for('remove_product', product_id=product.id) }}"
+                                       class="btn btn-danger btn-icon"
+                                       title="Remove Product"
+                                       onclick="return confirm('Are you sure you want to remove this product?')">🗑️</a>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             {% else %}
                 <p style="color: #888; text-align: center; padding: 2rem;">
                     No products tracked yet. Add one on the right to get started!

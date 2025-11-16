@@ -1,42 +1,48 @@
-# Current Task: Make two section body layout
+# Current Task: Make UI elements responsive with icon buttons
 
 ## Implementation Plan
 
 ### Goal
-Create a two-column layout where:
-- Left side: Automatic tracking + Tracked products list
-- Right side: Add new product form
+Replace text buttons with icon buttons and ensure all UI elements are responsive.
 
 ### Subtasks
 
-1. **Update index.html layout structure**
-   - Create a grid or flexbox layout
-   - Left column: Cron status + Products table
-   - Right column: Add product form
+1. **Add icon library (using Unicode/Emoji or external library)**
+   - Use Font Awesome or simple Unicode symbols
+   - Add icon mapping for common actions
 
-2. **Add responsive CSS classes**
-   - Use CSS Grid or Flexbox
-   - Make it stack on mobile (single column)
+2. **Update button styling**
+   - Create icon-only button class
+   - Make buttons display side by side (flexbox)
+   - Add tooltips for accessibility
 
-3. **Adjust card widths and spacing**
-   - Ensure proper spacing between columns
-   - Make cards fill their columns
+3. **Replace text buttons with icons**
+   - View History → 👁️ or 📊
+   - Remove → 🗑️ or ❌
+   - Enable/Disable Cron → ⏰/⏸️
+   - Run Now → ▶️ or 🚀
+
+4. **Make table responsive**
+   - Stack table cells on mobile
+   - Use horizontal scroll for wide tables
+   - Adjust action buttons layout
 
 ### Changes Required
 
-**File: templates/index.html**
-- Wrap cron and products sections in a left container
-- Wrap add product form in a right container
-- Add grid/flex container wrapper
-
 **File: templates/base.html**
-- Add grid layout CSS classes
-- Add responsive breakpoints
+- Add CSS for icon buttons
+- Add tooltip styling
+- Update responsive breakpoints
+
+**File: templates/index.html**
+- Replace button text with icons
+- Add title attributes for tooltips
+- Update action buttons layout
 
 ### Verification
 
-- [ ] Two column layout on desktop
-- [ ] Left side shows cron + products
-- [ ] Right side shows add product form
-- [ ] Stacks to single column on mobile
-- [ ] Proper spacing and alignment
+- [ ] Buttons show icons instead of text
+- [ ] Tooltips appear on hover
+- [ ] Buttons are side by side
+- [ ] Table is responsive on mobile
+- [ ] All actions still work correctly
