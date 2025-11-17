@@ -76,34 +76,67 @@ def get_all_products_with_history():
 
 
 def get_cron_status():
-    """Check if cron job exists."""
+    """Check if cron job exists and get its frequency."""
     try:
         result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
-        if result.returncode == 0:
-            return 'price_tracker.py' in result.stdout
-        return False
+        if result.returncode == 0 and 'price_tracker.py' in result.stdout:
+            # Extract frequency from cron expression
+            for line in result.stdout.split('\n'):
+                if 'price_tracker.py' in line:
+                    parts = line.strip().split()
+                    if len(parts) >= 5:
+                        # Parse cron schedule
+                        minute = parts[0]
+                        hour = parts[1]
+
+                        # Determine frequency
+                        if minute.startswith('*/'):
+                            # Every X minutes
+                            freq = int(minute[2:])
+                            return {'active': True, 'frequency': freq}
+                        elif minute == '0':
+                            # Hourly or multi-hourly
+                            if hour.startswith('*/'):
+                                freq = int(hour[2:]) * 60
+                                return {'active': True, 'frequency': freq}
+                            elif hour == '*':
+                                return {'active': True, 'frequency': 60}
+
+            return {'active': True, 'frequency': 60}  # Default to hourly
+        return {'active': False, 'frequency': None}
     except:
-        return False
+        return {'active': False, 'frequency': None}
 
 
-def get_cron_command():
-    """Get the cron command that would be added."""
+def get_cron_command(frequency_minutes=60):
+    """Get the cron command for a given frequency."""
     script_dir = Path.cwd()
     python_path = subprocess.run(['which', 'python3'], capture_output=True, text=True).stdout.strip()
-    return f"0 * * * * cd {script_dir} && {python_path} price_tracker.py >> {script_dir}/tracker.log 2>&1"
+
+    # Convert frequency to cron expression
+    if frequency_minutes == 30:
+        cron_schedule = "*/30 * * * *"
+    elif frequency_minutes == 60:
+        cron_schedule = "0 * * * *"
+    elif frequency_minutes == 120:
+        cron_schedule = "0 */2 * * *"
+    elif frequency_minutes == 180:
+        cron_schedule = "0 */3 * * *"
+    else:
+        cron_schedule = "0 * * * *"  # Default to hourly
+
+    return f"{cron_schedule} cd {script_dir} && {python_path} price_tracker.py >> {script_dir}/tracker.log 2>&1"
 
 
 @app.route('/')
 def index():
     """Main dashboard page."""
     products = get_all_products_with_history()
-    cron_active = get_cron_status()
-    cron_command = get_cron_command()
+    cron_status = get_cron_status()
 
     return render_template('index.html',
                          products=products,
-                         cron_active=cron_active,
-                         cron_command=cron_command)
+                         cron_status=cron_status)
 
 
 @app.route('/api/products')
@@ -312,29 +345,48 @@ def logs():
 
 @app.route('/enable_cron', methods=['POST'])
 def enable_cron():
-    """Enable cron job."""
+    """Enable cron job with specified frequency."""
     try:
-        cron_command = get_cron_command()
+        # Get frequency from form (in minutes)
+        frequency = int(request.form.get('frequency', 60))
+
+        # Validate frequency
+        if frequency not in [30, 60, 120, 180]:
+            frequency = 60  # Default to hourly
+
+        cron_command = get_cron_command(frequency)
 
         # Get existing crontab
         result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
         existing_cron = result.stdout if result.returncode == 0 else ""
 
-        # Check if already exists
-        if 'price_tracker.py' in existing_cron:
-            flash('Cron job already exists!', 'warning')
-            return redirect(url_for('index'))
+        # Remove any existing price tracker cron jobs
+        lines = existing_cron.split('\n')
+        new_lines = [line for line in lines if 'price_tracker.py' not in line]
+        existing_cron = '\n'.join(new_lines).strip()
 
         # Add new cron job
-        new_cron = existing_cron + cron_command + "\n"
+        new_cron = (existing_cron + "\n" if existing_cron else "") + cron_command + "\n"
 
         # Write to crontab
         process = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE, text=True)
         process.communicate(input=new_cron)
 
-        flash('Cron job enabled! Tracker will run hourly.', 'success')
+        # Format frequency message
+        if frequency == 30:
+            freq_msg = "every 30 minutes"
+        elif frequency == 60:
+            freq_msg = "every hour"
+        elif frequency == 120:
+            freq_msg = "every 2 hours"
+        elif frequency == 180:
+            freq_msg = "every 3 hours"
+        else:
+            freq_msg = f"every {frequency} minutes"
+
+        flash(f'Automatic tracking enabled! Tracker will run {freq_msg}.', 'success')
     except Exception as e:
-        flash(f'Error enabling cron: {e}', 'error')
+        flash(f'Error enabling automatic tracking: {e}', 'error')
 
     return redirect(url_for('index'))
 

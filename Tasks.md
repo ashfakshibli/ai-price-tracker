@@ -23,3 +23,4 @@
 - [x] Edit/update functionality for tracked items (modal-based editing)
 - [x] Inline editing on product name - click directly on name to edit (more intuitive)
 - [x] Merchant favicon icons displayed next to products (auto-fetched and cached)
+- [x] Tracking frequency selector - choose between 30min, 1hr, 2hr, or 3hr intervals (cron details hidden from users)
