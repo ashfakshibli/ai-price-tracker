@@ -26,3 +26,4 @@
 - [x] Tracking frequency selector - choose between 30min, 1hr, 2hr, or 3hr intervals (cron details hidden from users)
 - [x] Reorganized dashboard layout - Automatic Tracking moved under Add Product (right column), left column shows only tracked products
 - [x] Product sorting by creation time - newest products appear first in the list
+- [x] **Database Migration** - Migrated from JSON files to SQLite database with SQLAlchemy ORM (proper data models, relationships, better data integrity)
