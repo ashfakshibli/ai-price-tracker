@@ -110,7 +110,7 @@
                     <label for="url">Product URL</label>
                     <div style="display: flex; gap: 0.5rem;">
                         <input type="url" id="url" name="url" required placeholder="https://..." style="flex: 1;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="pasteFromClipboard()" title="Paste from clipboard">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="pasteFromClipboard()">
                             <i data-feather="clipboard"></i>
                         </button>
                     </div>
@@ -242,11 +242,13 @@
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Show loader
-            showLoader('Adding product...');
-
             // Get form data
             const formData = new FormData(addProductForm);
+
+            // Show loader
+            const hasName = formData.get('name');
+            const loaderMessage = hasName ? 'Adding product...' : 'Extracting product name from URL...';
+            showLoader(loaderMessage);
 
             try {
                 // Send AJAX request

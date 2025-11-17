@@ -27,3 +27,11 @@
 - [x] Reorganized dashboard layout - Automatic Tracking moved under Add Product (right column), left column shows only tracked products
 - [x] Product sorting by creation time - newest products appear first in the list
 - [x] **Database Migration** - Migrated from JSON files to SQLite database with SQLAlchemy ORM (proper data models, relationships, better data integrity)
+
+## Current Tasks (In Progress)
+
+- [x] **Direct paste functionality** - Remove tooltip, make paste button paste directly on click
+- [x] **Verify product sorting** - DB query sorts by creation date descending (latest first) ✓ Confirmed working
+- [x] **Fix shipping availability logic** - "Get It Tomorrow" or date means product is available (fixed to recognize "tomorrow", "today")
+- [x] **Better loader messages** - Show "Extracting product name from URL..." when name extraction is happening
+- [ ] **Progressive product loading** - Display product immediately after adding, then update with price data when background processing completes (requires price_tracker.py integration)

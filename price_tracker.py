@@ -219,9 +219,13 @@ class PriceTracker:
                                         except:
                                             is_selected = False
 
-                                        # Check if tile has delivery date (day of week)
-                                        has_delivery_date = any(day in tile_text for day in
-                                            ['mon,', 'tue,', 'wed,', 'thu,', 'fri,', 'sat,', 'sun,'])
+                                        # Check if tile has delivery date (day of week OR "tomorrow")
+                                        has_delivery_date = (
+                                            any(day in tile_text for day in
+                                                ['mon,', 'tue,', 'wed,', 'thu,', 'fri,', 'sat,', 'sun,']) or
+                                            'tomorrow' in tile_text or
+                                            'today' in tile_text
+                                        )
 
                                         # Check if tile says unavailable
                                         has_unavailable = 'unavailable' in tile_text
