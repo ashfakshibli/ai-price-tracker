@@ -425,12 +425,12 @@
 
         // Create editing field
         const editingHTML = `
-            <div class="editing-field">
+            <div class="editing-field" data-product-id="${productId}">
                 <input type="text" value="${escapeHtml(currentName)}" id="editInput_${productId}" autofocus>
-                <button class="btn btn-success btn-sm" onclick="saveProductName(${productId})">
+                <button class="btn btn-success btn-sm" id="saveBtn_${productId}">
                     <i data-feather="check"></i> Save
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="cancelProductName(${productId}, '${escapeHtml(originalName)}')">
+                <button class="btn btn-secondary btn-sm" id="cancelBtn_${productId}">
                     <i data-feather="x"></i> Cancel
                 </button>
             </div>
@@ -444,8 +444,24 @@
             feather.replace();
         }
 
-        // Focus on input and select all text
+        // Attach event listeners to buttons
+        const saveBtn = document.getElementById(`saveBtn_${productId}`);
+        const cancelBtn = document.getElementById(`cancelBtn_${productId}`);
         const input = document.getElementById(`editInput_${productId}`);
+
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                saveProductName(productId);
+            });
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+                cancelProductName(productId, originalName);
+            });
+        }
+
+        // Focus on input and select all text
         if (input) {
             input.focus();
             input.select();
@@ -453,6 +469,7 @@
             // Save on Enter key
             input.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     saveProductName(productId);
                 }
             });
@@ -460,6 +477,7 @@
             // Cancel on Escape key
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
+                    e.preventDefault();
                     cancelProductName(productId, originalName);
                 }
             });
