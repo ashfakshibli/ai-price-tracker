@@ -21,3 +21,4 @@
 
 - [x] Auto-generate product name from URL scraping (using Claude AI)
 - [x] Edit/update functionality for tracked items (modal-based editing)
+- [x] Inline editing on product name - click directly on name to edit (more intuitive)
