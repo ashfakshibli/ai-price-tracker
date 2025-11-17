@@ -46,7 +46,7 @@ def get_product_history(product_id):
 
 
 def get_all_products_with_history():
-    """Get all products with their latest data."""
+    """Get all products with their latest data, sorted by creation time (newest first)."""
     config = load_config()
     products = []
 
@@ -63,14 +63,18 @@ def get_all_products_with_history():
         favicon_path = get_or_fetch_favicon(product['url'])
 
         products.append({
-            'id': index,  # Use array index as ID
+            'id': index,  # Use original array index as stable ID
             'hash_id': product_id,  # Keep hash for file lookup
             'config': product,
             'latest': latest,
             'history_count': len(history_data.get('history', [])) if history_data else 0,
             'history': history_data.get('history', []) if history_data else [],
-            'favicon': favicon_path  # Add favicon path
+            'favicon': favicon_path,  # Add favicon path
+            'created_at': product.get('created_at')  # Add creation timestamp for sorting
         })
+
+    # Sort by creation time, newest first (products without created_at go to the end)
+    products.sort(key=lambda p: p['created_at'] or '', reverse=True)
 
     return products
 
@@ -264,12 +268,18 @@ def add_product():
         return redirect(url_for('index'))
 
     config = load_config()
+
+    # Add creation timestamp
+    from datetime import datetime
+    created_at = datetime.now().isoformat()
+
     config['products'].append({
         'name': name,
         'url': url,
         'notify_on_price_drop': notify_price,
         'notify_on_availability': notify_availability,
-        'track_variants': track_variants
+        'track_variants': track_variants,
+        'created_at': created_at
     })
     save_config(config)
 

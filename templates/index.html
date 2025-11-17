@@ -3,84 +3,8 @@
 {% block content %}
 
 <div class="grid-layout">
-    <!-- Left Column: Automatic Tracking + Tracked Products -->
+    <!-- Left Column: Tracked Products Only -->
     <div class="left-column">
-        <!-- Automatic Tracking -->
-        <div class="card">
-            <h2 style="display: flex; align-items: center; gap: 0.5rem;">
-                <i data-feather="clock"></i> Automatic Tracking
-            </h2>
-
-            {% if cron_status.active %}
-                <div class="status-box status-active">
-                    <strong>✓ Automatic tracking is enabled</strong>
-                    <p>Tracker runs
-                        {% if cron_status.frequency == 30 %}every 30 minutes{% elif cron_status.frequency == 60 %}every hour{% elif cron_status.frequency == 120 %}every 2 hours{% elif cron_status.frequency == 180 %}every 3 hours{% else %}every {{ cron_status.frequency }} minutes{% endif %}
-                    </p>
-                </div>
-
-                <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;">
-                    <form method="POST" action="{{ url_for('disable_cron') }}" style="flex: 1;">
-                        <button type="submit" class="btn btn-danger" style="width: 100%;">
-                            <i data-feather="pause"></i> Disable Automatic Tracking
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ url_for('run_now') }}">
-                        <button type="submit" class="btn btn-primary btn-icon" title="Run Now">
-                            <i data-feather="play"></i>
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Change frequency -->
-                <details style="margin-top: 1rem;">
-                    <summary style="cursor: pointer; color: #667eea; font-size: 0.9rem;">Change frequency</summary>
-                    <form method="POST" action="{{ url_for('enable_cron') }}" style="margin-top: 0.75rem;">
-                        <div class="form-group">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Check frequency:</label>
-                            <select name="frequency" class="form-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
-                                <option value="30" {% if cron_status.frequency == 30 %}selected{% endif %}>Every 30 minutes</option>
-                                <option value="60" {% if cron_status.frequency == 60 %}selected{% endif %}>Every hour</option>
-                                <option value="120" {% if cron_status.frequency == 120 %}selected{% endif %}>Every 2 hours</option>
-                                <option value="180" {% if cron_status.frequency == 180 %}selected{% endif %}>Every 3 hours</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">
-                            <i data-feather="check"></i> Update Frequency
-                        </button>
-                    </form>
-                </details>
-            {% else %}
-                <div class="status-box status-inactive">
-                    <strong>⚠ Automatic tracking is disabled</strong>
-                    <p>Enable automatic tracking to monitor prices at regular intervals</p>
-                </div>
-
-                <form method="POST" action="{{ url_for('enable_cron') }}" style="margin-top: 1rem;">
-                    <div class="form-group">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Check frequency:</label>
-                        <select name="frequency" class="form-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; margin-bottom: 1rem;">
-                            <option value="30">Every 30 minutes</option>
-                            <option value="60" selected>Every hour (recommended)</option>
-                            <option value="120">Every 2 hours</option>
-                            <option value="180">Every 3 hours</option>
-                        </select>
-                    </div>
-
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button type="submit" class="btn btn-success" style="flex: 1;">
-                            <i data-feather="play"></i> Enable Automatic Tracking
-                        </button>
-                        <button type="button" onclick="document.getElementById('runNowForm').submit()" class="btn btn-primary btn-icon" title="Run Once Now">
-                            <i data-feather="zap"></i>
-                        </button>
-                    </div>
-                </form>
-
-                <form id="runNowForm" method="POST" action="{{ url_for('run_now') }}" style="display: none;"></form>
-            {% endif %}
-        </div>
-
         <!-- Tracked Products -->
         <div class="card">
             <h2>📊 Tracked Products ({{ products|length }})</h2>
@@ -227,6 +151,82 @@
 
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Add Product</button>
             </form>
+        </div>
+
+        <!-- Automatic Tracking -->
+        <div class="card">
+            <h2 style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-feather="clock"></i> Automatic Tracking
+            </h2>
+
+            {% if cron_status.active %}
+                <div class="status-box status-active">
+                    <strong>✓ Automatic tracking is enabled</strong>
+                    <p>Tracker runs
+                        {% if cron_status.frequency == 30 %}every 30 minutes{% elif cron_status.frequency == 60 %}every hour{% elif cron_status.frequency == 120 %}every 2 hours{% elif cron_status.frequency == 180 %}every 3 hours{% else %}every {{ cron_status.frequency }} minutes{% endif %}
+                    </p>
+                </div>
+
+                <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center;">
+                    <form method="POST" action="{{ url_for('disable_cron') }}" style="flex: 1;">
+                        <button type="submit" class="btn btn-danger" style="width: 100%;">
+                            <i data-feather="pause"></i> Disable Automatic Tracking
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('run_now') }}">
+                        <button type="submit" class="btn btn-primary btn-icon" title="Run Now">
+                            <i data-feather="play"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Change frequency -->
+                <details style="margin-top: 1rem;">
+                    <summary style="cursor: pointer; color: #667eea; font-size: 0.9rem;">Change frequency</summary>
+                    <form method="POST" action="{{ url_for('enable_cron') }}" style="margin-top: 0.75rem;">
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Check frequency:</label>
+                            <select name="frequency" class="form-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+                                <option value="30" {% if cron_status.frequency == 30 %}selected{% endif %}>Every 30 minutes</option>
+                                <option value="60" {% if cron_status.frequency == 60 %}selected{% endif %}>Every hour</option>
+                                <option value="120" {% if cron_status.frequency == 120 %}selected{% endif %}>Every 2 hours</option>
+                                <option value="180" {% if cron_status.frequency == 180 %}selected{% endif %}>Every 3 hours</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">
+                            <i data-feather="check"></i> Update Frequency
+                        </button>
+                    </form>
+                </details>
+            {% else %}
+                <div class="status-box status-inactive">
+                    <strong>⚠ Automatic tracking is disabled</strong>
+                    <p>Enable automatic tracking to monitor prices at regular intervals</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('enable_cron') }}" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Check frequency:</label>
+                        <select name="frequency" class="form-select" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; margin-bottom: 1rem;">
+                            <option value="30">Every 30 minutes</option>
+                            <option value="60" selected>Every hour (recommended)</option>
+                            <option value="120">Every 2 hours</option>
+                            <option value="180">Every 3 hours</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="btn btn-success" style="flex: 1;">
+                            <i data-feather="play"></i> Enable Automatic Tracking
+                        </button>
+                        <button type="button" onclick="document.getElementById('runNowForm').submit()" class="btn btn-primary btn-icon" title="Run Once Now">
+                            <i data-feather="zap"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <form id="runNowForm" method="POST" action="{{ url_for('run_now') }}" style="display: none;"></form>
+            {% endif %}
         </div>
     </div>
 </div>
