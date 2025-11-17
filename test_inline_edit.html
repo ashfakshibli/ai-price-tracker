@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Inline Edit Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .editable { cursor: pointer; background: #f0f0f0; padding: 5px; display: inline-block; }
+        .editing-field { display: flex; gap: 10px; }
+        .editing-field input { padding: 5px; }
+        .btn { padding: 5px 10px; cursor: pointer; }
+        .btn-success { background: #28a745; color: white; border: none; }
+        .btn-secondary { background: #6c757d; color: white; border: none; }
+        #results { margin-top: 20px; padding: 10px; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <h1>Inline Edit Test</h1>
+
+    <h2>Test Cases:</h2>
+
+    <div style="margin: 20px 0;">
+        <strong>Test 1 - Simple text:</strong><br>
+        <strong class="editable" data-product-id="1" data-original-name="Simple Product" onclick="editProductName(this)">Simple Product</strong>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <strong>Test 2 - With quotes:</strong><br>
+        <strong class="editable" data-product-id="2" data-original-name="Product &quot;Name&quot;" onclick="editProductName(this)">Product "Name"</strong>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <strong>Test 3 - With ampersand:</strong><br>
+        <strong class="editable" data-product-id="3" data-original-name="Toys &amp; Games" onclick="editProductName(this)">Toys & Games</strong>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <strong>Test 4 - With special chars:</strong><br>
+        <strong class="editable" data-product-id="4" data-original-name="MacBook Pro 14&quot; - M3" onclick="editProductName(this)">MacBook Pro 14" - M3</strong>
+    </div>
+
+    <div id="results">
+        <h3>Test Results:</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' - ' + message + '</div>';
+        }
+
+        function editProductName(element) {
+            const productId = element.dataset.productId;
+            const originalName = element.dataset.originalName;
+            const currentName = element.textContent;
+
+            log('EDIT CLICKED: ID=' + productId + ', Current=' + currentName + ', Original=' + originalName);
+
+            // Create editing field container
+            const container = document.createElement('div');
+            container.className = 'editing-field';
+            container.dataset.productId = productId;
+
+            // Create input field
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.id = `editInput_${productId}`;
+            input.autofocus = true;
+
+            log('INPUT VALUE SET TO: "' + input.value + '"');
+
+            // Create save button
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn btn-success';
+            saveBtn.id = `saveBtn_${productId}`;
+            saveBtn.textContent = 'Save';
+
+            // Create cancel button
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.id = `cancelBtn_${productId}`;
+            cancelBtn.textContent = 'Cancel';
+
+            // Append to container
+            container.appendChild(input);
+            container.appendChild(saveBtn);
+            container.appendChild(cancelBtn);
+
+            // Replace the strong element with editing field
+            element.replaceWith(container);
+
+            // Attach event listeners
+            saveBtn.addEventListener('click', function() {
+                saveProductName(productId);
+            });
+
+            cancelBtn.addEventListener('click', function() {
+                cancelProductName(productId, originalName);
+            });
+
+            // Focus and select
+            input.focus();
+            input.select();
+
+            // Keyboard shortcuts
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveProductName(productId);
+                }
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelProductName(productId, originalName);
+                }
+            });
+        }
+
+        async function saveProductName(productId) {
+            const input = document.getElementById(`editInput_${productId}`);
+            const newName = input.value.trim();
+
+            log('SAVE CLICKED: ID=' + productId + ', New Name="' + newName + '"');
+
+            if (!newName) {
+                alert('Product name cannot be empty');
+                return;
+            }
+
+            try {
+                // Test JSON.stringify
+                const jsonData = JSON.stringify({ name: newName });
+                log('JSON stringify SUCCESS: ' + jsonData);
+
+                // Simulate API call
+                log('Simulating API call to /api/update_product/' + productId);
+
+                // In real app, this would be:
+                // const response = await fetch(`/api/update_product/${productId}`, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: jsonData
+                // });
+
+                log('✓ SUCCESS: Product name would be updated to "' + newName + '"');
+
+                // Restore display
+                const container = document.querySelector(`.editing-field[data-product-id="${productId}"]`);
+                const newElement = document.createElement('strong');
+                newElement.className = 'editable';
+                newElement.dataset.productId = productId;
+                newElement.dataset.originalName = newName;
+                newElement.textContent = newName;
+                newElement.onclick = function() { editProductName(this); };
+                container.replaceWith(newElement);
+
+            } catch (error) {
+                log('✗ ERROR: ' + error.message);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function cancelProductName(productId, originalName) {
+            log('CANCEL CLICKED: ID=' + productId + ', Restoring to "' + originalName + '"');
+
+            const container = document.querySelector(`.editing-field[data-product-id="${productId}"]`);
+            const newElement = document.createElement('strong');
+            newElement.className = 'editable';
+            newElement.dataset.productId = productId;
+            newElement.dataset.originalName = originalName;
+            newElement.textContent = originalName;
+            newElement.onclick = function() { editProductName(this); };
+            container.replaceWith(newElement);
+        }
+    </script>
+</body>
+</html>

@@ -73,7 +73,7 @@
                             <td>
                                 <strong class="editable product-name"
                                         data-product-id="{{ product.id }}"
-                                        data-original-name="{{ product.config.name }}"
+                                        data-original-name="{{ product.config.name|e }}"
                                         onclick="editProductName(this)">{{ product.config.name }}</strong><br>
                                 <small style="color: #888;">{{ product.config.url[:50] }}...</small>
                             </td>
