@@ -34,6 +34,17 @@ pip install -r requirements.txt
 The first run will automatically download the appropriate ChromeDriver for your system.
 
 2. Set your Anthropic API key:
+
+**Option A: Using .env file (Recommended)**
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your API key
+# ANTHROPIC_API_KEY=your-actual-api-key-here
+```
+
+**Option B: Using environment variable**
 ```bash
 export ANTHROPIC_API_KEY='your-api-key-here'
 ```
@@ -44,7 +55,7 @@ echo 'export ANTHROPIC_API_KEY="your-api-key-here"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-3. Configure products to track in `config.json`
+3. Configure products to track in `config.json` (or use the web dashboard)
 
 4. Run the tracker:
 ```bash
