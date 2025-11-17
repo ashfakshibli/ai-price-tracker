@@ -17,7 +17,9 @@ from models import db, Product, PriceHistory, Variant
 from favicon_utils import get_or_fetch_favicon
 
 # Load environment variables from .env file
-load_dotenv()
+# Use explicit path to ensure .env is found regardless of working directory
+env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -294,10 +296,25 @@ def add_product():
 
         session.add(product)
         session.commit()
+        product_id = product.id  # Get the ID before closing session
 
-        message = f'Added {name} to tracking!'
+        # Trigger immediate background price check
+        import threading
+        def background_check():
+            try:
+                from price_tracker import PriceTracker
+                tracker = PriceTracker()
+                tracker.check_single_product(product_id)
+            except Exception as e:
+                print(f"Error in background check for product {product_id}: {e}")
+
+        thread = threading.Thread(target=background_check)
+        thread.daemon = True
+        thread.start()
+
+        message = f'Added {name} to tracking! Initial price check is running in the background.'
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': message, 'product': {'id': product.id, 'name': name, 'url': url}})
+            return jsonify({'success': True, 'message': message, 'product': {'id': product_id, 'name': name, 'url': url}})
 
         flash(message, 'success')
         return redirect(url_for('index'))

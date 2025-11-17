@@ -26,14 +26,20 @@ A simple price tracking tool that monitors product prices and availability on we
 
 ### Installation
 
-1. Install dependencies:
+1. Create a virtual environment (recommended):
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
 The first run will automatically download the appropriate ChromeDriver for your system.
 
-2. Set your Anthropic API key:
+3. Set your Anthropic API key:
 
 **Option A: Using .env file (Recommended)**
 ```bash
@@ -55,10 +61,15 @@ echo 'export ANTHROPIC_API_KEY="your-api-key-here"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-3. Configure products to track in `config.json` (or use the web dashboard)
+4. Configure products to track in `config.json` (or use the web dashboard)
 
-4. Run the tracker:
+5. Run the tracker:
 ```bash
+# Using the helper script (automatically activates venv)
+./run_tracker.sh
+
+# OR manually with venv
+source venv/bin/activate
 python price_tracker.py
 ```
 
@@ -67,6 +78,11 @@ python price_tracker.py
 The tracker includes a web dashboard for easy management:
 
 ```bash
+# Using the helper script (automatically activates venv)
+./run_dashboard.sh
+
+# OR manually with venv
+source venv/bin/activate
 python dashboard.py
 ```
 
@@ -100,6 +116,11 @@ Then open http://localhost:5000 in your browser.
 
 Run the tracker once:
 ```bash
+# Using the helper script
+./run_tracker.sh
+
+# OR with venv activated
+source venv/bin/activate
 python price_tracker.py
 ```
 
@@ -107,8 +128,8 @@ python price_tracker.py
 
 Add to your crontab:
 ```bash
-# Run every hour
-0 * * * * cd /path/to/ai-price-tracker && /usr/bin/python3 price_tracker.py >> tracker.log 2>&1
+# Run every hour (using helper script that activates venv)
+0 * * * * cd /path/to/ai-price-tracker && ./run_tracker.sh >> tracker.log 2>&1
 ```
 
 ## Configuration

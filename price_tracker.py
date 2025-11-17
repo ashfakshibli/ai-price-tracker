@@ -25,8 +25,13 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 
+# Database imports
+from models import db, Product, PriceHistory, Variant
+
 # Load environment variables from .env file
-load_dotenv()
+# Use explicit path to ensure .env is found regardless of working directory
+env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 
 class PriceTracker:
@@ -594,6 +599,96 @@ Product name:"""
                 print(f"  - {variant['name']}: {price} - {status}")
 
         print(f"\nLast checked: {data.get('checked_at', 'Unknown')}")
+
+    def check_single_product(self, product_id: int) -> bool:
+        """Check a single product by database ID and save to database.
+        
+        Args:
+            product_id: Database ID of the product to check
+            
+        Returns:
+            True if check was successful, False otherwise
+        """
+        session = db.get_session()
+        try:
+            # Get product from database
+            product = session.query(Product).filter_by(id=product_id, is_active=True).first()
+            if not product:
+                print(f"❌ Product {product_id} not found or inactive")
+                return False
+
+            print(f"\n{'='*60}")
+            print(f"Checking: {product.name}")
+            print(f"{'='*60}")
+
+            # Fetch webpage and interact with variants
+            webpage_data = self._fetch_webpage_and_variants(product.url)
+            if not webpage_data:
+                return False
+
+            # Extract data using AI
+            current_data = self._extract_product_data(
+                webpage_data['html'],
+                product.url,
+                product.name,
+                webpage_data.get('variants_data', [])
+            )
+
+            if not current_data:
+                return False
+
+            # Save to database
+            self._save_to_database(session, product, current_data)
+            session.commit()
+
+            print(f"✅ Successfully checked and saved {product.name}")
+            return True
+
+        except Exception as e:
+            session.rollback()
+            print(f"❌ Error checking product {product_id}: {e}")
+            return False
+        finally:
+            session.close()
+
+    def _save_to_database(self, session, product: Product, data: Dict):
+        """Save price check data to database."""
+        # Create price history entry
+        price_history = PriceHistory(
+            product_id=product.id,
+            price=data.get('price', 0.0),
+            original_price=data.get('original_price'),
+            discount=data.get('discount'),
+            condition=data.get('condition'),
+            can_add_to_cart=data.get('can_add_to_cart', False),
+            in_stock=data.get('in_stock', False),
+            checked_at=datetime.now(),
+            raw_data=data
+        )
+        session.add(price_history)
+        session.flush()  # Get the ID
+
+        # Save variants if present
+        if data.get('variants'):
+            for variant_data in data['variants']:
+                # Skip variants without price information
+                if variant_data.get('price') is None:
+                    continue
+                
+                # Extract variant name and map to appropriate field
+                variant_name = variant_data.get('name', '')
+                
+                variant = Variant(
+                    price_history_id=price_history.id,
+                    condition=variant_name,  # Store variant name as condition
+                    price=variant_data.get('price', 0.0),
+                    original_price=variant_data.get('original_price'),
+                    discount=variant_data.get('discount'),
+                    can_add_to_cart=variant_data.get('available', False),
+                    in_stock=variant_data.get('available', False),
+                    variant_metadata=variant_data  # Store full data in metadata
+                )
+                session.add(variant)
 
     def track_all_products(self):
         """Track all configured products."""
