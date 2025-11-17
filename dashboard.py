@@ -114,6 +114,32 @@ def api_logs():
     return jsonify({'logs': log_entries, 'count': len(log_entries)})
 
 
+@app.route('/api/check_url')
+def api_check_url():
+    """Check if a URL is already being tracked."""
+    url = request.args.get('url', '')
+
+    if not url:
+        return jsonify({'exists': False})
+
+    config = load_config()
+    exists = any(product['url'] == url for product in config['products'])
+
+    return jsonify({'exists': exists, 'url': url})
+
+
+@app.route('/api/product/<int:product_id>')
+def api_product(product_id):
+    """Get a single product with history."""
+    products = get_all_products_with_history()
+
+    for product in products:
+        if product['id'] == product_id:
+            return jsonify(product)
+
+    return jsonify({'error': 'Product not found'}), 404
+
+
 @app.route('/add_product', methods=['POST'])
 def add_product():
     """Add a new product to track."""

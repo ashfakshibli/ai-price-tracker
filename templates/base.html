@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI Price Tracker{% endblock %}</title>
+
+    <!-- Feather Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -149,49 +153,61 @@
         }
 
         .btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
             padding: 0.6rem 1.2rem;
             border: none;
             border-radius: 6px;
             font-size: 0.95rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             text-decoration: none;
             color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .btn-primary {
-            background: #667eea;
-        }
-
-        .btn-primary:hover {
-            background: #5568d3;
+        .btn:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
             transform: translateY(-1px);
         }
 
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #65408f 100%);
+        }
+
         .btn-success {
-            background: #28a745;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         }
 
         .btn-success:hover {
-            background: #218838;
+            background: linear-gradient(135deg, #218838 0%, #1aa179 100%);
         }
 
         .btn-danger {
-            background: #dc3545;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
         }
 
         .btn-danger:hover {
-            background: #c82333;
+            background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
         }
 
         .btn-secondary {
-            background: #6c757d;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
         }
 
         .btn-secondary:hover {
-            background: #5a6268;
+            background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
         }
 
         .btn-sm {
@@ -200,14 +216,20 @@
         }
 
         .btn-icon {
-            padding: 0.5rem;
-            min-width: 36px;
+            padding: 0.5rem 0.75rem;
+            min-width: auto;
             min-height: 36px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            gap: 0.3rem;
             position: relative;
+        }
+
+        .btn-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2.5;
         }
 
         .btn-icon:hover::after {
@@ -224,6 +246,7 @@
             font-size: 0.75rem;
             margin-bottom: 0.5rem;
             z-index: 1000;
+            pointer-events: none;
         }
 
         .btn-group {
@@ -234,9 +257,9 @@
 
         .action-buttons {
             display: flex;
-            gap: 0.4rem;
+            gap: 0.5rem;
             justify-content: flex-start;
-            flex-wrap: wrap;
+            align-items: center;
         }
 
         .form-group {
@@ -439,6 +462,157 @@
             border-left: 4px solid #dc3545;
         }
 
+        /* Main content wrapper for sidebar squeeze */
+        .main-content-wrapper {
+            transition: margin-right 0.3s ease;
+            margin-right: 0;
+        }
+
+        .main-content-wrapper.sidebar-open {
+            margin-right: 400px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #f0f0f0;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .product-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .product-info-row {
+            display: flex;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .product-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .product-info-label {
+            font-weight: 600;
+            width: 120px;
+            color: #666;
+        }
+
+        .product-info-value {
+            flex: 1;
+            color: #333;
+            word-break: break-word;
+        }
+
+        .history-preview {
+            margin-top: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .history-preview h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .history-item {
+            padding: 0.5rem;
+            border-left: 3px solid #667eea;
+            margin-bottom: 0.5rem;
+            background: white;
+            font-size: 0.85rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Debug Sidebar */
         .debug-sidebar {
             position: fixed;
@@ -613,6 +787,10 @@
         }
 
         @media (max-width: 768px) {
+            .main-content-wrapper.sidebar-open {
+                margin-right: 0;
+            }
+
             .debug-sidebar {
                 width: 100%;
                 right: -100%;
@@ -625,26 +803,28 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🔍 AI Price Tracker</h1>
-        <p>Monitor product prices and availability automatically</p>
-    </div>
+    <div class="main-content-wrapper" id="mainContentWrapper">
+        <div class="header">
+            <h1>🔍 AI Price Tracker</h1>
+            <p>Monitor product prices and availability automatically</p>
+        </div>
 
-    <div class="nav">
-        <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Dashboard</a>
-        <a href="{{ url_for('logs') }}" class="{% if request.endpoint == 'logs' %}active{% endif %}">Logs</a>
-    </div>
+        <div class="nav">
+            <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Dashboard</a>
+            <a href="{{ url_for('logs') }}" class="{% if request.endpoint == 'logs' %}active{% endif %}">Logs</a>
+        </div>
 
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-        {% block content %}{% endblock %}
+            {% block content %}{% endblock %}
+        </div>
     </div>
 
     <!-- Loader Overlay -->
@@ -678,6 +858,58 @@
             <button id="autoRefreshBtn" onclick="toggleAutoRefresh()">Auto-refresh: OFF</button>
             <button onclick="clearDebugLogs()">Clear</button>
             <button onclick="refreshDebugLogs()">Refresh</button>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i data-feather="alert-triangle" style="color: #dc3545;"></i>
+                    Confirm Delete
+                </h3>
+                <button class="modal-close" onclick="closeDeleteModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="product-info">
+                    <div class="product-info-row">
+                        <div class="product-info-label">Product:</div>
+                        <div class="product-info-value" id="modalProductName">—</div>
+                    </div>
+                    <div class="product-info-row">
+                        <div class="product-info-label">URL:</div>
+                        <div class="product-info-value" id="modalProductUrl">—</div>
+                    </div>
+                    <div class="product-info-row">
+                        <div class="product-info-label">Total Checks:</div>
+                        <div class="product-info-value" id="modalProductChecks">—</div>
+                    </div>
+                    <div class="product-info-row">
+                        <div class="product-info-label">Last Price:</div>
+                        <div class="product-info-value" id="modalProductPrice">—</div>
+                    </div>
+                    <div class="product-info-row">
+                        <div class="product-info-label">Status:</div>
+                        <div class="product-info-value" id="modalProductStatus">—</div>
+                    </div>
+                </div>
+
+                <div class="history-preview" id="modalHistoryPreview">
+                    <h4>Recent History (Last 5 checks)</h4>
+                    <div id="modalHistoryList">Loading...</div>
+                </div>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                    <strong>⚠️ Warning:</strong> This action cannot be undone. All tracking history for this product will be permanently deleted.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
+                    <i data-feather="trash-2"></i> Delete Product
+                </button>
+            </div>
         </div>
     </div>
 
@@ -743,8 +975,11 @@
         function toggleDebugSidebar() {
             const sidebar = document.getElementById('debugSidebar');
             const toggle = document.getElementById('debugToggle');
+            const mainWrapper = document.getElementById('mainContentWrapper');
+
             sidebar.classList.toggle('open');
             toggle.classList.toggle('sidebar-open');
+            mainWrapper.classList.toggle('sidebar-open');
 
             // Load logs when opening
             if (sidebar.classList.contains('open')) {
@@ -841,6 +1076,93 @@
                 toggleDebugSidebar();
             }
         };
+
+        // Delete Modal Functions
+        let deleteProductId = null;
+        let deleteProductUrl = null;
+
+        async function showDeleteModal(productId, productName, productUrl) {
+            deleteProductId = productId;
+            deleteProductUrl = productUrl;
+
+            // Set product basic info
+            document.getElementById('modalProductName').textContent = productName;
+            document.getElementById('modalProductUrl').textContent = productUrl;
+
+            // Fetch product details
+            try {
+                const response = await fetch(`/api/product/${productId}`);
+                const data = await response.json();
+
+                // Update modal with product details
+                document.getElementById('modalProductChecks').textContent = data.history_count || 0;
+
+                if (data.latest) {
+                    const price = parseFloat(data.latest.price).toFixed(2);
+                    document.getElementById('modalProductPrice').innerHTML = `$${price} ${data.latest.currency || 'USD'}`;
+
+                    const status = data.latest.can_add_to_cart
+                        ? '<span class="badge badge-success">✓ Available</span>'
+                        : '<span class="badge badge-danger">✗ Unavailable</span>';
+                    document.getElementById('modalProductStatus').innerHTML = status;
+                } else {
+                    document.getElementById('modalProductPrice').textContent = 'No data';
+                    document.getElementById('modalProductStatus').innerHTML = '<span class="badge badge-info">Not checked yet</span>';
+                }
+
+                // Display recent history
+                const historyList = document.getElementById('modalHistoryList');
+                if (data.history && data.history.length > 0) {
+                    historyList.innerHTML = data.history.slice(-5).reverse().map(entry => {
+                        const date = new Date(entry.checked_at).toLocaleString();
+                        const price = parseFloat(entry.price).toFixed(2);
+                        const available = entry.can_add_to_cart ? '✓' : '✗';
+                        return `
+                            <div class="history-item">
+                                <strong>${date}</strong><br>
+                                Price: $${price} | Available: ${available}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    historyList.innerHTML = '<div style="color: #888; padding: 0.5rem;">No history available</div>';
+                }
+            } catch (error) {
+                console.error('Error fetching product details:', error);
+                document.getElementById('modalHistoryList').innerHTML = '<div style="color: #dc3545;">Failed to load history</div>';
+            }
+
+            // Show modal
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('show');
+
+            // Re-initialize Feather icons in modal
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('show');
+            deleteProductId = null;
+            deleteProductUrl = null;
+        }
+
+        function confirmDelete() {
+            if (deleteProductUrl) {
+                // Redirect to remove product URL
+                window.location.href = `/remove_product/${deleteProductId}`;
+            }
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('deleteModal');
+            if (event.target === modal) {
+                closeDeleteModal();
+            }
+        });
     </script>
 
     {% block scripts %}{% endblock %}

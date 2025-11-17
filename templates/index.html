@@ -15,10 +15,14 @@
                 </div>
                 <div class="btn-group">
                     <form method="POST" action="{{ url_for('disable_cron') }}">
-                        <button type="submit" class="btn btn-danger btn-icon" title="Disable Cron">⏸️</button>
+                        <button type="submit" class="btn btn-danger btn-icon" title="Disable Cron">
+                            <i data-feather="pause"></i>
+                        </button>
                     </form>
                     <form method="POST" action="{{ url_for('run_now') }}">
-                        <button type="submit" class="btn btn-primary btn-icon" title="Run Now">▶️</button>
+                        <button type="submit" class="btn btn-primary btn-icon" title="Run Now">
+                            <i data-feather="play"></i>
+                        </button>
                     </form>
                 </div>
             {% else %}
@@ -28,10 +32,14 @@
                 </div>
                 <div class="btn-group">
                     <form method="POST" action="{{ url_for('enable_cron') }}">
-                        <button type="submit" class="btn btn-success btn-icon" title="Enable Cron">▶️</button>
+                        <button type="submit" class="btn btn-success btn-icon" title="Enable Cron">
+                            <i data-feather="play"></i>
+                        </button>
                     </form>
                     <form method="POST" action="{{ url_for('run_now') }}">
-                        <button type="submit" class="btn btn-primary btn-icon" title="Run Now">🚀</button>
+                        <button type="submit" class="btn btn-primary btn-icon" title="Run Now">
+                            <i data-feather="zap"></i>
+                        </button>
                     </form>
                 </div>
             {% endif %}
@@ -101,11 +109,15 @@
                                 <div class="action-buttons">
                                     <a href="{{ url_for('history', product_id=product.id) }}"
                                        class="btn btn-primary btn-icon"
-                                       title="View History">📊</a>
-                                    <a href="{{ url_for('remove_product', product_id=product.id) }}"
+                                       title="View History">
+                                        <i data-feather="bar-chart-2"></i>
+                                    </a>
+                                    <button type="button"
                                        class="btn btn-danger btn-icon"
                                        title="Remove Product"
-                                       onclick="return confirm('Are you sure you want to remove this product?')">🗑️</a>
+                                       onclick="showDeleteModal({{ product.id }}, '{{ product.config.name|replace("'", "\\'") }}', '{{ product.config.url|replace("'", "\\'") }}')">
+                                        <i data-feather="trash-2"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -124,7 +136,9 @@
     <!-- Right Column: Add Product Form -->
     <div class="right-column">
         <div class="card">
-            <h2>➕ Add New Product</h2>
+            <h2 style="display: flex; align-items: center; gap: 0.5rem;">
+                <i data-feather="plus-circle"></i> Add New Product
+            </h2>
             <form method="POST" action="{{ url_for('add_product') }}" id="addProductForm">
                 <div class="form-group">
                     <label for="name">Product Name</label>
@@ -133,7 +147,13 @@
 
                 <div class="form-group">
                     <label for="url">Product URL</label>
-                    <input type="url" id="url" name="url" required placeholder="https://...">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="url" id="url" name="url" required placeholder="https://..." style="flex: 1;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="pasteFromClipboard()" title="Paste from clipboard">
+                            <i data-feather="clipboard"></i>
+                        </button>
+                    </div>
+                    <small id="urlStatus" style="display: none; margin-top: 0.3rem;"></small>
                 </div>
 
                 <div class="form-group">
@@ -287,16 +307,25 @@
                                 <div class="action-buttons">
                                     <a href="/history/${product.id}"
                                        class="btn btn-primary btn-icon"
-                                       title="View History">📊</a>
-                                    <a href="/remove_product/${product.id}"
+                                       title="View History">
+                                        <i data-feather="bar-chart-2"></i>
+                                    </a>
+                                    <button type="button"
                                        class="btn btn-danger btn-icon"
                                        title="Remove Product"
-                                       onclick="return confirm('Are you sure you want to remove this product?')">🗑️</a>
+                                       onclick="showDeleteModal(${product.id}, '${escapeHtml(product.config.name).replace(/'/g, "\\'")}', '${escapeHtml(product.config.url).replace(/'/g, "\\'")}')">
+                                        <i data-feather="trash-2"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
                     `;
                 }).join('');
+
+                // Re-initialize Feather icons
+                if (typeof feather !== 'undefined') {
+                    feather.replace();
+                }
             }
         }
     }
@@ -321,5 +350,64 @@
             // Let form submit normally
         });
     });
+
+    // Paste URL from clipboard
+    async function pasteFromClipboard() {
+        const urlInput = document.getElementById('url');
+        const urlStatus = document.getElementById('urlStatus');
+
+        try {
+            // Read clipboard content
+            const text = await navigator.clipboard.readText();
+
+            // Validate if it's a URL
+            const urlPattern = /^https?:\/\/.+/i;
+            if (!urlPattern.test(text)) {
+                urlStatus.style.display = 'block';
+                urlStatus.style.color = '#dc3545';
+                urlStatus.textContent = '❌ Clipboard does not contain a valid URL';
+                return;
+            }
+
+            // Check if URL already exists
+            const response = await fetch(`{{ url_for("api_check_url") }}?url=${encodeURIComponent(text)}`);
+            const data = await response.json();
+
+            if (data.exists) {
+                urlStatus.style.display = 'block';
+                urlStatus.style.color = '#ffc107';
+                urlStatus.textContent = '⚠️ This URL is already being tracked';
+                urlInput.value = text;
+                return;
+            }
+
+            // URL is valid and not duplicate
+            urlInput.value = text;
+            urlStatus.style.display = 'block';
+            urlStatus.style.color = '#28a745';
+            urlStatus.textContent = '✓ URL pasted successfully';
+
+            // Clear status after 3 seconds
+            setTimeout(() => {
+                urlStatus.style.display = 'none';
+            }, 3000);
+
+        } catch (error) {
+            console.error('Error reading clipboard:', error);
+            urlStatus.style.display = 'block';
+            urlStatus.style.color = '#dc3545';
+            urlStatus.textContent = '❌ Could not read clipboard. Permission denied or not supported.';
+
+            // Clear status after 3 seconds
+            setTimeout(() => {
+                urlStatus.style.display = 'none';
+            }, 3000);
+        }
+    }
+
+    // Initialize Feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 </script>
 {% endblock %}
