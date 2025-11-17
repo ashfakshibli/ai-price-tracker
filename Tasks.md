@@ -16,3 +16,8 @@
 - [x] Clicking delete button should show popup for confirmation with product info and history
 - [x] Debug logs sidebar overlaps Add product section - make whole section squeeze responsively when sidebar opens
 - [x] Add paste URL option if URL found in clipboard to add new product (skip if already being tracked)
+
+## Latest Features
+
+- [x] Auto-generate product name from URL scraping (using Claude AI)
+- [x] Edit/update functionality for tracked items (modal-based editing)
