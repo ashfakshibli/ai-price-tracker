@@ -69,9 +69,12 @@
                     </thead>
                     <tbody>
                         {% for product in products %}
-                        <tr>
+                        <tr data-product-id="{{ product.id }}">
                             <td>
-                                <strong>{{ product.config.name }}</strong><br>
+                                <strong class="editable product-name"
+                                        data-product-id="{{ product.id }}"
+                                        data-original-name="{{ product.config.name }}"
+                                        onclick="editProductName(this)">{{ product.config.name }}</strong><br>
                                 <small style="color: #888;">{{ product.config.url[:50] }}...</small>
                             </td>
                             <td>
@@ -107,12 +110,6 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <button type="button"
-                                       class="btn btn-secondary btn-icon"
-                                       title="Edit Product"
-                                       onclick="showEditModal({{ product.id }}, {{ product.config|tojson|safe }})">
-                                        <i data-feather="edit-2"></i>
-                                    </button>
                                     <a href="{{ url_for('history', product_id=product.id) }}"
                                        class="btn btn-primary btn-icon"
                                        title="View History">
@@ -301,9 +298,12 @@
                         : '—';
 
                     return `
-                        <tr>
+                        <tr data-product-id="${product.id}">
                             <td>
-                                <strong>${escapeHtml(product.config.name)}</strong><br>
+                                <strong class="editable product-name"
+                                        data-product-id="${product.id}"
+                                        data-original-name="${escapeHtml(product.config.name)}"
+                                        onclick="editProductName(this)">${escapeHtml(product.config.name)}</strong><br>
                                 <small style="color: #888;">${escapeHtml(product.config.url.substring(0, 50))}...</small>
                             </td>
                             <td>
@@ -317,12 +317,6 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <button type="button"
-                                       class="btn btn-secondary btn-icon"
-                                       title="Edit Product"
-                                       onclick='showEditModal(${product.id}, ${JSON.stringify(product.config)})'>
-                                        <i data-feather="edit-2"></i>
-                                    </button>
                                     <a href="/history/${product.id}"
                                        class="btn btn-primary btn-icon"
                                        title="View History">
@@ -421,6 +415,103 @@
                 urlStatus.style.display = 'none';
             }, 3000);
         }
+    }
+
+    // Inline edit product name
+    function editProductName(element) {
+        const productId = element.dataset.productId;
+        const originalName = element.dataset.originalName;
+        const currentName = element.textContent;
+
+        // Create editing field
+        const editingHTML = `
+            <div class="editing-field">
+                <input type="text" value="${escapeHtml(currentName)}" id="editInput_${productId}" autofocus>
+                <button class="btn btn-success btn-sm" onclick="saveProductName(${productId})">
+                    <i data-feather="check"></i> Save
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="cancelProductName(${productId}, '${escapeHtml(originalName)}')">
+                    <i data-feather="x"></i> Cancel
+                </button>
+            </div>
+        `;
+
+        // Replace the strong element with editing field
+        element.outerHTML = editingHTML;
+
+        // Re-initialize Feather icons
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+
+        // Focus on input and select all text
+        const input = document.getElementById(`editInput_${productId}`);
+        if (input) {
+            input.focus();
+            input.select();
+
+            // Save on Enter key
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveProductName(productId);
+                }
+            });
+
+            // Cancel on Escape key
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    cancelProductName(productId, originalName);
+                }
+            });
+        }
+    }
+
+    async function saveProductName(productId) {
+        const input = document.getElementById(`editInput_${productId}`);
+        const newName = input.value.trim();
+
+        if (!newName) {
+            showNotification('Product name cannot be empty', 'error');
+            return;
+        }
+
+        showLoader('Saving changes...');
+
+        try {
+            const response = await fetch(`/api/update_product/${productId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: newName
+                })
+            });
+
+            const data = await response.json();
+
+            hideLoader();
+
+            if (data.success) {
+                showNotification('Product name updated!', 'success');
+                // Reload product list to show updated name
+                await reloadProductList();
+            } else {
+                showNotification(data.error || 'Failed to update product name', 'error');
+                // Reload to restore original state
+                await reloadProductList();
+            }
+        } catch (error) {
+            hideLoader();
+            showNotification('Error updating product: ' + error.message, 'error');
+            // Reload to restore original state
+            await reloadProductList();
+        }
+    }
+
+    function cancelProductName(productId, originalName) {
+        // Just reload the product list to restore original state
+        reloadProductList();
     }
 
     // Extract product name from URL
