@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
 Web dashboard for AI Price Tracker.
+
+Now uses SQLite database with SQLAlchemy ORM for data persistence.
 """
 
-import json
 import os
 import subprocess
 from datetime import datetime
@@ -11,72 +12,59 @@ from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from dotenv import load_dotenv
 
+# Database imports
+from models import db, Product, PriceHistory, Variant
+from favicon_utils import get_or_fetch_favicon
+
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-CONFIG_FILE = "config.json"
-DATA_DIR = Path("data")
 LOG_FILE = "tracker.log"
 
-
-def load_config():
-    """Load configuration from JSON file."""
-    if Path(CONFIG_FILE).exists():
-        with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
-    return {"products": [], "check_interval_hours": 1, "notifications": {"terminal": True, "email": False}}
-
-
-def save_config(config):
-    """Save configuration to JSON file."""
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, indent=2)
-
-
-def get_product_history(product_id):
-    """Get historical data for a product."""
-    data_file = DATA_DIR / f"{product_id}.json"
-    if data_file.exists():
-        with open(data_file, 'r') as f:
-            return json.load(f)
-    return None
+# Create database tables if they don't exist
+db.create_tables()
 
 
 def get_all_products_with_history():
     """Get all products with their latest data, sorted by creation time (newest first)."""
-    config = load_config()
-    products = []
+    session = db.get_session()
 
-    for index, product in enumerate(config.get('products', [])):
-        import hashlib
-        from favicon_utils import get_or_fetch_favicon
+    try:
+        # Query all active products, ordered by creation time (newest first)
+        products_db = session.query(Product).filter_by(is_active=True).order_by(Product.created_at.desc()).all()
 
-        product_id = hashlib.md5(product['url'].encode()).hexdigest()[:12]
+        products = []
+        for product in products_db:
+            # Get latest price check
+            latest = product.latest_price
 
-        history_data = get_product_history(product_id)
-        latest = history_data.get('current') if history_data else None
+            # Get or fetch favicon
+            if not product.favicon_path:
+                product.favicon_path = get_or_fetch_favicon(product.url)
+                session.commit()
 
-        # Get favicon for the product's website
-        favicon_path = get_or_fetch_favicon(product['url'])
+            # Build product dict for template
+            products.append({
+                'id': product.id,
+                'config': {
+                    'name': product.name,
+                    'url': product.url,
+                    'notify_on_price_drop': product.notify_on_price_drop,
+                    'notify_on_availability': product.notify_on_availability,
+                    'track_variants': product.track_variants
+                },
+                'latest': latest.to_dict() if latest else None,
+                'history_count': len(product.price_history),
+                'favicon': product.favicon_path or 'static/favicons/default-favicon.svg',
+                'created_at': product.created_at.isoformat() if product.created_at else None
+            })
 
-        products.append({
-            'id': index,  # Use original array index as stable ID
-            'hash_id': product_id,  # Keep hash for file lookup
-            'config': product,
-            'latest': latest,
-            'history_count': len(history_data.get('history', [])) if history_data else 0,
-            'history': history_data.get('history', []) if history_data else [],
-            'favicon': favicon_path,  # Add favicon path
-            'created_at': product.get('created_at')  # Add creation timestamp for sorting
-        })
-
-    # Sort by creation time, newest first (products without created_at go to the end)
-    products.sort(key=lambda p: p['created_at'] or '', reverse=True)
-
-    return products
+        return products
+    finally:
+        session.close()
 
 
 def get_cron_status():
@@ -171,10 +159,12 @@ def api_check_url():
     if not url:
         return jsonify({'exists': False})
 
-    config = load_config()
-    exists = any(product['url'] == url for product in config['products'])
-
-    return jsonify({'exists': exists, 'url': url})
+    session = db.get_session()
+    try:
+        exists = session.query(Product).filter_by(url=url, is_active=True).first() is not None
+        return jsonify({'exists': exists, 'url': url})
+    finally:
+        session.close()
 
 
 @app.route('/api/product/<int:product_id>')
@@ -214,32 +204,46 @@ def api_extract_name():
 @app.route('/api/update_product/<int:product_id>', methods=['POST'])
 def api_update_product(product_id):
     """Update product configuration."""
-    config = load_config()
+    session = db.get_session()
+    try:
+        product = session.query(Product).filter_by(id=product_id, is_active=True).first()
 
-    if product_id < 0 or product_id >= len(config['products']):
-        return jsonify({'error': 'Product not found'}), 404
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
 
-    # Get update data
-    data = request.json if request.is_json else request.form.to_dict()
+        # Get update data
+        data = request.json if request.is_json else request.form.to_dict()
 
-    # Update product fields
-    product = config['products'][product_id]
+        # Update product fields
+        if 'name' in data:
+            product.name = data['name']
+        if 'url' in data:
+            product.url = data['url']
+        if 'notify_on_price_drop' in data:
+            product.notify_on_price_drop = data['notify_on_price_drop'] in [True, 'true', 'on', '1']
+        if 'notify_on_availability' in data:
+            product.notify_on_availability = data['notify_on_availability'] in [True, 'true', 'on', '1']
+        if 'track_variants' in data:
+            product.track_variants = data['track_variants'] in [True, 'true', 'on', '1']
 
-    if 'name' in data:
-        product['name'] = data['name']
-    if 'url' in data:
-        product['url'] = data['url']
-    if 'notify_on_price_drop' in data:
-        product['notify_on_price_drop'] = data['notify_on_price_drop'] in [True, 'true', 'on', '1']
-    if 'notify_on_availability' in data:
-        product['notify_on_availability'] = data['notify_on_availability'] in [True, 'true', 'on', '1']
-    if 'track_variants' in data:
-        product['track_variants'] = data['track_variants'] in [True, 'true', 'on', '1']
+        product.updated_at = datetime.utcnow()
+        session.commit()
 
-    # Save config
-    save_config(config)
+        product_dict = {
+            'id': product.id,
+            'name': product.name,
+            'url': product.url,
+            'notify_on_price_drop': product.notify_on_price_drop,
+            'notify_on_availability': product.notify_on_availability,
+            'track_variants': product.track_variants
+        }
 
-    return jsonify({'success': True, 'product': product})
+        return jsonify({'success': True, 'product': product_dict})
+    except Exception as e:
+        session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        session.close()
 
 
 @app.route('/add_product', methods=['POST'])
@@ -267,41 +271,65 @@ def add_product():
         flash('Name and URL are required!', 'error')
         return redirect(url_for('index'))
 
-    config = load_config()
+    # Add product to database
+    session = db.get_session()
+    try:
+        # Check if URL already exists
+        existing = session.query(Product).filter_by(url=url).first()
+        if existing:
+            message = f'This URL is already being tracked as "{existing.name}"'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': message}), 400
+            flash(message, 'error')
+            return redirect(url_for('index'))
 
-    # Add creation timestamp
-    from datetime import datetime
-    created_at = datetime.now().isoformat()
+        # Create new product
+        product = Product(
+            name=name,
+            url=url,
+            notify_on_price_drop=notify_price,
+            notify_on_availability=notify_availability,
+            track_variants=track_variants
+        )
 
-    config['products'].append({
-        'name': name,
-        'url': url,
-        'notify_on_price_drop': notify_price,
-        'notify_on_availability': notify_availability,
-        'track_variants': track_variants,
-        'created_at': created_at
-    })
-    save_config(config)
+        session.add(product)
+        session.commit()
 
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'success': True, 'message': f'Added {name} to tracking!', 'product': {'name': name, 'url': url}})
+        message = f'Added {name} to tracking!'
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': message, 'product': {'id': product.id, 'name': name, 'url': url}})
 
-    flash(f'Added {name} to tracking!', 'success')
-    return redirect(url_for('index'))
+        flash(message, 'success')
+        return redirect(url_for('index'))
+    except Exception as e:
+        session.rollback()
+        message = f'Error adding product: {str(e)}'
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': message}), 500
+        flash(message, 'error')
+        return redirect(url_for('index'))
+    finally:
+        session.close()
 
 
 @app.route('/remove_product/<int:product_id>')
 def remove_product(product_id):
-    """Remove a product from tracking."""
-    config = load_config()
-
-    # Remove product by index
-    if 0 <= product_id < len(config['products']):
-        removed = config['products'].pop(product_id)
-        save_config(config)
-        flash(f'Removed {removed["name"]} from tracking!', 'success')
-    else:
-        flash('Product not found!', 'error')
+    """Remove a product from tracking (soft delete)."""
+    session = db.get_session()
+    try:
+        product = session.query(Product).filter_by(id=product_id).first()
+        if product:
+            # Soft delete - mark as inactive instead of deleting
+            product.is_active = False
+            session.commit()
+            flash(f'Removed {product.name} from tracking!', 'success')
+        else:
+            flash('Product not found!', 'error')
+    except Exception as e:
+        session.rollback()
+        flash(f'Error removing product: {str(e)}', 'error')
+    finally:
+        session.close()
 
     return redirect(url_for('index'))
 
@@ -309,36 +337,40 @@ def remove_product(product_id):
 @app.route('/history/<int:product_id>')
 def history(product_id):
     """View history for a specific product."""
-    config = load_config()
+    session = db.get_session()
+    try:
+        product = session.query(Product).filter_by(id=product_id, is_active=True).first()
 
-    # Get product by index
-    if product_id < 0 or product_id >= len(config.get('products', [])):
-        flash('Product not found!', 'error')
-        return redirect(url_for('index'))
+        if not product:
+            flash('Product not found!', 'error')
+            return redirect(url_for('index'))
 
-    product_config = config['products'][product_id]
+        # Get all price history for this product
+        price_history = product.price_history  # Already ordered by date desc
 
-    # Calculate hash for file lookup
-    import hashlib
-    from favicon_utils import get_or_fetch_favicon
+        if not price_history:
+            flash('No history data available yet!', 'warning')
+            return redirect(url_for('index'))
 
-    hash_id = hashlib.md5(product_config['url'].encode()).hexdigest()[:12]
+        # Current (latest) price
+        current = price_history[0].to_dict() if price_history else None
 
-    history_data = get_product_history(hash_id)
+        # Historical prices (all but the latest)
+        history_list = [h.to_dict() for h in price_history[1:]] if len(price_history) > 1 else []
 
-    if not history_data:
-        flash('No history data available yet!', 'warning')
-        return redirect(url_for('index'))
+        product_dict = {
+            'name': product.name,
+            'url': product.url
+        }
 
-    # Get favicon
-    favicon_path = get_or_fetch_favicon(product_config['url'])
-
-    return render_template('history.html',
-                         product=product_config,
-                         product_id=product_id,
-                         current=history_data.get('current'),
-                         history=history_data.get('history', []),
-                         favicon=favicon_path)
+        return render_template('history.html',
+                             product=product_dict,
+                             product_id=product_id,
+                             current=current,
+                             history=history_list,
+                             favicon=product.favicon_path or 'static/favicons/default-favicon.svg')
+    finally:
+        session.close()
 
 
 @app.route('/logs')
@@ -445,13 +477,11 @@ def run_now():
 
 
 if __name__ == '__main__':
-    # Create data directory if it doesn't exist
-    DATA_DIR.mkdir(exist_ok=True)
-
     print("=" * 60)
     print("AI Price Tracker Dashboard")
     print("=" * 60)
-    print("\nStarting web server...")
+    print("\nUsing SQLite database: tracker.db")
+    print("Starting web server...")
     print("Dashboard URL: http://localhost:5000")
     print("\nPress Ctrl+C to stop the server")
     print("=" * 60)

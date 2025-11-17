@@ -1,6 +1,7 @@
 # Data files
 data/
 *.log
+*.db
 
 # Downloaded favicons (keep default)
 static/favicons/*.ico
