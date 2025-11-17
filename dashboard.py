@@ -144,14 +144,77 @@ def api_product(product_id):
     return jsonify({'error': 'Product not found'}), 404
 
 
+@app.route('/api/extract_name', methods=['POST'])
+def api_extract_name():
+    """Extract product name from URL."""
+    url = request.json.get('url') if request.is_json else request.form.get('url')
+
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+
+    try:
+        from price_tracker import PriceTracker
+        tracker = PriceTracker()
+        product_name = tracker.extract_product_name(url)
+
+        if product_name:
+            return jsonify({'success': True, 'name': product_name})
+        else:
+            return jsonify({'success': False, 'error': 'Could not extract product name'}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/update_product/<int:product_id>', methods=['POST'])
+def api_update_product(product_id):
+    """Update product configuration."""
+    config = load_config()
+
+    if product_id < 0 or product_id >= len(config['products']):
+        return jsonify({'error': 'Product not found'}), 404
+
+    # Get update data
+    data = request.json if request.is_json else request.form.to_dict()
+
+    # Update product fields
+    product = config['products'][product_id]
+
+    if 'name' in data:
+        product['name'] = data['name']
+    if 'url' in data:
+        product['url'] = data['url']
+    if 'notify_on_price_drop' in data:
+        product['notify_on_price_drop'] = data['notify_on_price_drop'] in [True, 'true', 'on', '1']
+    if 'notify_on_availability' in data:
+        product['notify_on_availability'] = data['notify_on_availability'] in [True, 'true', 'on', '1']
+    if 'track_variants' in data:
+        product['track_variants'] = data['track_variants'] in [True, 'true', 'on', '1']
+
+    # Save config
+    save_config(config)
+
+    return jsonify({'success': True, 'product': product})
+
+
 @app.route('/add_product', methods=['POST'])
 def add_product():
     """Add a new product to track."""
-    name = request.form.get('name')
+    name = request.form.get('name', '').strip()
     url = request.form.get('url')
     notify_price = request.form.get('notify_price') == 'on'
     notify_availability = request.form.get('notify_availability') == 'on'
     track_variants = request.form.get('track_variants') == 'on'
+
+    # If name is empty, try to extract it from URL
+    if not name and url:
+        try:
+            from price_tracker import PriceTracker
+            tracker = PriceTracker()
+            name = tracker.extract_product_name(url)
+        except Exception as e:
+            print(f"Error extracting name: {e}")
+            name = None
 
     if not name or not url:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

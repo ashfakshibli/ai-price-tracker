@@ -913,6 +913,61 @@
         </div>
     </div>
 
+    <!-- Edit Product Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i data-feather="edit-2" style="color: #667eea;"></i>
+                    Edit Product
+                </h3>
+                <button class="modal-close" onclick="closeEditModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProductForm">
+                    <input type="hidden" id="editProductId">
+
+                    <div class="form-group">
+                        <label for="editName">Product Name</label>
+                        <input type="text" id="editName" required placeholder="Product name" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editUrl">Product URL</label>
+                        <input type="url" id="editUrl" required placeholder="https://..." style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="editNotifyPrice">
+                            Notify on price drop
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="editNotifyAvailability">
+                            Notify on availability change
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="editTrackVariants">
+                            Track product variants
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProductEdit()">
+                    <i data-feather="save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script>
         // Utility functions
@@ -1158,11 +1213,88 @@
 
         // Close modal when clicking outside
         document.addEventListener('click', function(event) {
-            const modal = document.getElementById('deleteModal');
-            if (event.target === modal) {
+            const deleteModal = document.getElementById('deleteModal');
+            if (event.target === deleteModal) {
                 closeDeleteModal();
             }
+
+            const editModal = document.getElementById('editModal');
+            if (event.target === editModal) {
+                closeEditModal();
+            }
         });
+
+        // Edit Modal Functions
+        function showEditModal(productId, productConfig) {
+            document.getElementById('editProductId').value = productId;
+            document.getElementById('editName').value = productConfig.name;
+            document.getElementById('editUrl').value = productConfig.url;
+            document.getElementById('editNotifyPrice').checked = productConfig.notify_on_price_drop || false;
+            document.getElementById('editNotifyAvailability').checked = productConfig.notify_on_availability || false;
+            document.getElementById('editTrackVariants').checked = productConfig.track_variants || false;
+
+            const modal = document.getElementById('editModal');
+            modal.classList.add('show');
+
+            // Re-initialize Feather icons in modal
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('editModal');
+            modal.classList.remove('show');
+        }
+
+        async function saveProductEdit() {
+            const productId = document.getElementById('editProductId').value;
+            const name = document.getElementById('editName').value;
+            const url = document.getElementById('editUrl').value;
+            const notifyPrice = document.getElementById('editNotifyPrice').checked;
+            const notifyAvailability = document.getElementById('editNotifyAvailability').checked;
+            const trackVariants = document.getElementById('editTrackVariants').checked;
+
+            if (!name || !url) {
+                showNotification('Name and URL are required!', 'error');
+                return;
+            }
+
+            showLoader('Saving changes...');
+
+            try {
+                const response = await fetch(`/api/update_product/${productId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        url: url,
+                        notify_on_price_drop: notifyPrice,
+                        notify_on_availability: notifyAvailability,
+                        track_variants: trackVariants
+                    })
+                });
+
+                const data = await response.json();
+
+                hideLoader();
+
+                if (data.success) {
+                    showNotification('Product updated successfully!', 'success');
+                    closeEditModal();
+                    // Reload the page to show updated data
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification(data.error || 'Failed to update product', 'error');
+                }
+            } catch (error) {
+                hideLoader();
+                showNotification('Error updating product: ' + error.message, 'error');
+                console.error('Error:', error);
+            }
+        }
     </script>
 
     {% block scripts %}{% endblock %}

@@ -107,6 +107,12 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
+                                    <button type="button"
+                                       class="btn btn-secondary btn-icon"
+                                       title="Edit Product"
+                                       onclick="showEditModal({{ product.id }}, {{ product.config|tojson|safe }})">
+                                        <i data-feather="edit-2"></i>
+                                    </button>
                                     <a href="{{ url_for('history', product_id=product.id) }}"
                                        class="btn btn-primary btn-icon"
                                        title="View History">
@@ -141,11 +147,6 @@
             </h2>
             <form method="POST" action="{{ url_for('add_product') }}" id="addProductForm">
                 <div class="form-group">
-                    <label for="name">Product Name</label>
-                    <input type="text" id="name" name="name" required placeholder="e.g., MacBook Pro 14 - Fair Condition">
-                </div>
-
-                <div class="form-group">
                     <label for="url">Product URL</label>
                     <div style="display: flex; gap: 0.5rem;">
                         <input type="url" id="url" name="url" required placeholder="https://..." style="flex: 1;">
@@ -154,6 +155,17 @@
                         </button>
                     </div>
                     <small id="urlStatus" style="display: none; margin-top: 0.3rem;"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="name">Product Name <small style="color: #888;">(optional - will auto-extract from URL)</small></label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="name" name="name" placeholder="Leave empty to auto-extract" style="flex: 1;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="extractProductName()" title="Extract from URL" id="extractNameBtn">
+                            <i data-feather="download"></i> Extract
+                        </button>
+                    </div>
+                    <small id="nameStatus" style="display: none; margin-top: 0.3rem;"></small>
                 </div>
 
                 <div class="form-group">
@@ -305,6 +317,12 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
+                                    <button type="button"
+                                       class="btn btn-secondary btn-icon"
+                                       title="Edit Product"
+                                       onclick='showEditModal(${product.id}, ${JSON.stringify(product.config)})'>
+                                        <i data-feather="edit-2"></i>
+                                    </button>
                                     <a href="/history/${product.id}"
                                        class="btn btn-primary btn-icon"
                                        title="View History">
@@ -402,6 +420,85 @@
             setTimeout(() => {
                 urlStatus.style.display = 'none';
             }, 3000);
+        }
+    }
+
+    // Extract product name from URL
+    async function extractProductName() {
+        const urlInput = document.getElementById('url');
+        const nameInput = document.getElementById('name');
+        const nameStatus = document.getElementById('nameStatus');
+        const extractBtn = document.getElementById('extractNameBtn');
+
+        const url = urlInput.value.trim();
+
+        if (!url) {
+            nameStatus.style.display = 'block';
+            nameStatus.style.color = '#dc3545';
+            nameStatus.textContent = '❌ Please enter a URL first';
+            setTimeout(() => {
+                nameStatus.style.display = 'none';
+            }, 3000);
+            return;
+        }
+
+        // Disable button and show loading
+        extractBtn.disabled = true;
+        extractBtn.innerHTML = '<i data-feather="loader"></i> Extracting...';
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+
+        showLoader('Extracting product name from URL...');
+
+        try {
+            const response = await fetch('{{ url_for("api_extract_name") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
+            });
+
+            const data = await response.json();
+
+            hideLoader();
+
+            if (data.success && data.name) {
+                nameInput.value = data.name;
+                nameStatus.style.display = 'block';
+                nameStatus.style.color = '#28a745';
+                nameStatus.textContent = '✓ Product name extracted successfully!';
+
+                setTimeout(() => {
+                    nameStatus.style.display = 'none';
+                }, 5000);
+            } else {
+                nameStatus.style.display = 'block';
+                nameStatus.style.color = '#dc3545';
+                nameStatus.textContent = '❌ ' + (data.error || 'Could not extract product name');
+
+                setTimeout(() => {
+                    nameStatus.style.display = 'none';
+                }, 5000);
+            }
+        } catch (error) {
+            hideLoader();
+            console.error('Error extracting name:', error);
+            nameStatus.style.display = 'block';
+            nameStatus.style.color = '#dc3545';
+            nameStatus.textContent = '❌ Error: ' + error.message;
+
+            setTimeout(() => {
+                nameStatus.style.display = 'none';
+            }, 5000);
+        } finally {
+            // Re-enable button
+            extractBtn.disabled = false;
+            extractBtn.innerHTML = '<i data-feather="download"></i> Extract';
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
         }
     }
 

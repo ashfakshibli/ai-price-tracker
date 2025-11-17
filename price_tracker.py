@@ -431,6 +431,59 @@ If information is not found, use null for that field.
             print(f"❌ Error extracting data with AI: {e}")
             return None
 
+    def extract_product_name(self, url: str) -> Optional[str]:
+        """Extract just the product name from a URL using simple page fetch."""
+        print(f"📝 Extracting product name from: {url}")
+
+        try:
+            # Fetch the webpage
+            result = self._fetch_webpage_and_variants(url, max_retries=1)
+            if not result or not result.get('html'):
+                return None
+
+            html = result['html']
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Remove script and style tags
+            for tag in soup(['script', 'style', 'noscript']):
+                tag.decompose()
+
+            # Get text content (first 15000 chars to save tokens)
+            text_content = soup.get_text(separator='\n', strip=True)[:15000]
+
+            prompt = f"""Extract ONLY the product name from this webpage.
+
+URL: {url}
+
+Page content (truncated):
+{text_content[:5000]}
+
+Respond with ONLY the product name as plain text, nothing else.
+Example responses:
+- MacBook Pro 14-inch M3 - Fair Condition
+- Sony WH-1000XM5 Wireless Headphones
+- Samsung 65" QLED 4K Smart TV
+
+Product name:"""
+
+            # Using Claude 3.5 Haiku for cost-effectiveness
+            message = self.client.messages.create(
+                model="claude-3-5-haiku-20241022",
+                max_tokens=100,
+                messages=[{
+                    "role": "user",
+                    "content": prompt
+                }]
+            )
+
+            product_name = message.content[0].text.strip()
+            print(f"✅ Extracted product name: {product_name}")
+            return product_name
+
+        except Exception as e:
+            print(f"❌ Error extracting product name: {e}")
+            return None
+
     def _load_previous_data(self, product_id: str) -> Optional[Dict]:
         """Load previous tracking data for a product."""
         data_file = self.data_dir / f"{product_id}.json"
