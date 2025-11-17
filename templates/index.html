@@ -423,65 +423,71 @@
         const originalName = element.dataset.originalName;
         const currentName = element.textContent;
 
-        // Create editing field
-        const editingHTML = `
-            <div class="editing-field" data-product-id="${productId}">
-                <input type="text" value="${escapeHtml(currentName)}" id="editInput_${productId}" autofocus>
-                <button class="btn btn-success btn-sm" id="saveBtn_${productId}">
-                    <i data-feather="check"></i> Save
-                </button>
-                <button class="btn btn-secondary btn-sm" id="cancelBtn_${productId}">
-                    <i data-feather="x"></i> Cancel
-                </button>
-            </div>
-        `;
+        // Create editing field container
+        const container = document.createElement('div');
+        container.className = 'editing-field';
+        container.dataset.productId = productId;
+
+        // Create input field
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.id = `editInput_${productId}`;
+        input.autofocus = true;
+
+        // Create save button
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn btn-success btn-sm';
+        saveBtn.id = `saveBtn_${productId}`;
+        saveBtn.innerHTML = '<i data-feather="check"></i> Save';
+
+        // Create cancel button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary btn-sm';
+        cancelBtn.id = `cancelBtn_${productId}`;
+        cancelBtn.innerHTML = '<i data-feather="x"></i> Cancel';
+
+        // Append to container
+        container.appendChild(input);
+        container.appendChild(saveBtn);
+        container.appendChild(cancelBtn);
 
         // Replace the strong element with editing field
-        element.outerHTML = editingHTML;
+        element.replaceWith(container);
 
         // Re-initialize Feather icons
         if (typeof feather !== 'undefined') {
             feather.replace();
         }
 
-        // Attach event listeners to buttons
-        const saveBtn = document.getElementById(`saveBtn_${productId}`);
-        const cancelBtn = document.getElementById(`cancelBtn_${productId}`);
-        const input = document.getElementById(`editInput_${productId}`);
+        // Attach event listeners to buttons (elements already exist in DOM)
+        saveBtn.addEventListener('click', function() {
+            saveProductName(productId);
+        });
 
-        if (saveBtn) {
-            saveBtn.addEventListener('click', function() {
-                saveProductName(productId);
-            });
-        }
-
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', function() {
-                cancelProductName(productId, originalName);
-            });
-        }
+        cancelBtn.addEventListener('click', function() {
+            cancelProductName(productId, originalName);
+        });
 
         // Focus on input and select all text
-        if (input) {
-            input.focus();
-            input.select();
+        input.focus();
+        input.select();
 
-            // Save on Enter key
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    saveProductName(productId);
-                }
-            });
+        // Save on Enter key
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveProductName(productId);
+            }
+        });
 
-            // Cancel on Escape key
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    cancelProductName(productId, originalName);
-                }
-            });
-        }
+        // Cancel on Escape key
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelProductName(productId, originalName);
+            }
+        });
     }
 
     async function saveProductName(productId) {
