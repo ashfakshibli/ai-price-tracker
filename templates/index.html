@@ -71,11 +71,19 @@
                         {% for product in products %}
                         <tr data-product-id="{{ product.id }}">
                             <td>
-                                <strong class="editable product-name"
-                                        data-product-id="{{ product.id }}"
-                                        data-original-name="{{ product.config.name|e }}"
-                                        onclick="editProductName(this)">{{ product.config.name }}</strong><br>
-                                <small style="color: #888;">{{ product.config.url[:50] }}...</small>
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <img src="/{{ product.favicon or 'static/favicons/default-favicon.svg' }}"
+                                         alt="Site icon"
+                                         style="width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0;"
+                                         onerror="this.src='/static/favicons/default-favicon.svg'">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <strong class="editable product-name"
+                                                data-product-id="{{ product.id }}"
+                                                data-original-name="{{ product.config.name|e }}"
+                                                onclick="editProductName(this)">{{ product.config.name }}</strong><br>
+                                        <small style="color: #888;">{{ product.config.url[:50] }}...</small>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 {% if product.latest %}
@@ -297,14 +305,24 @@
                         ? `<span data-timestamp="${product.latest.checked_at}">${timeAgo(product.latest.checked_at)}</span>`
                         : '—';
 
+                    const faviconSrc = product.favicon || 'static/favicons/default-favicon.svg';
+
                     return `
                         <tr data-product-id="${product.id}">
                             <td>
-                                <strong class="editable product-name"
-                                        data-product-id="${product.id}"
-                                        data-original-name="${escapeHtml(product.config.name)}"
-                                        onclick="editProductName(this)">${escapeHtml(product.config.name)}</strong><br>
-                                <small style="color: #888;">${escapeHtml(product.config.url.substring(0, 50))}...</small>
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <img src="/${faviconSrc}"
+                                         alt="Site icon"
+                                         style="width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0;"
+                                         onerror="this.src='/static/favicons/default-favicon.svg'">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <strong class="editable product-name"
+                                                data-product-id="${product.id}"
+                                                data-original-name="${escapeHtml(product.config.name)}"
+                                                onclick="editProductName(this)">${escapeHtml(product.config.name)}</strong><br>
+                                        <small style="color: #888;">${escapeHtml(product.config.url.substring(0, 50))}...</small>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 ${latestPrice}

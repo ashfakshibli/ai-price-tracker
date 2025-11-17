@@ -9,8 +9,16 @@
 </div>
 
 <div class="card">
-    <h2>📈 {{ product.name }}</h2>
-    <p style="color: #888; word-break: break-all;">{{ product.url }}</p>
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+        <img src="/{{ favicon or 'static/favicons/default-favicon.svg' }}"
+             alt="Site icon"
+             style="width: 32px; height: 32px; border-radius: 6px;"
+             onerror="this.src='/static/favicons/default-favicon.svg'">
+        <div>
+            <h2 style="margin: 0;">{{ product.name }}</h2>
+            <p style="color: #888; word-break: break-all; margin: 0.25rem 0 0 0;">{{ product.url }}</p>
+        </div>
+    </div>
 
     <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
         <h3>Current Status</h3>

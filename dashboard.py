@@ -52,10 +52,15 @@ def get_all_products_with_history():
 
     for index, product in enumerate(config.get('products', [])):
         import hashlib
+        from favicon_utils import get_or_fetch_favicon
+
         product_id = hashlib.md5(product['url'].encode()).hexdigest()[:12]
 
         history_data = get_product_history(product_id)
         latest = history_data.get('current') if history_data else None
+
+        # Get favicon for the product's website
+        favicon_path = get_or_fetch_favicon(product['url'])
 
         products.append({
             'id': index,  # Use array index as ID
@@ -63,7 +68,8 @@ def get_all_products_with_history():
             'config': product,
             'latest': latest,
             'history_count': len(history_data.get('history', [])) if history_data else 0,
-            'history': history_data.get('history', []) if history_data else []
+            'history': history_data.get('history', []) if history_data else [],
+            'favicon': favicon_path  # Add favicon path
         })
 
     return products
@@ -271,6 +277,8 @@ def history(product_id):
 
     # Calculate hash for file lookup
     import hashlib
+    from favicon_utils import get_or_fetch_favicon
+
     hash_id = hashlib.md5(product_config['url'].encode()).hexdigest()[:12]
 
     history_data = get_product_history(hash_id)
@@ -279,11 +287,15 @@ def history(product_id):
         flash('No history data available yet!', 'warning')
         return redirect(url_for('index'))
 
+    # Get favicon
+    favicon_path = get_or_fetch_favicon(product_config['url'])
+
     return render_template('history.html',
                          product=product_config,
                          product_id=product_id,
                          current=history_data.get('current'),
-                         history=history_data.get('history', []))
+                         history=history_data.get('history', []),
+                         favicon=favicon_path)
 
 
 @app.route('/logs')

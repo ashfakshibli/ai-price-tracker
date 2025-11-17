@@ -2,6 +2,14 @@
 data/
 *.log
 
+# Downloaded favicons (keep default)
+static/favicons/*.ico
+static/favicons/*.png
+static/favicons/*.jpg
+static/favicons/*.jpeg
+static/favicons/*.gif
+!static/favicons/default-favicon.svg
+
 # Python
 __pycache__/
 *.py[cod]
