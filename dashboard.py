@@ -50,7 +50,7 @@ def get_all_products_with_history():
     config = load_config()
     products = []
 
-    for product in config.get('products', []):
+    for index, product in enumerate(config.get('products', [])):
         import hashlib
         product_id = hashlib.md5(product['url'].encode()).hexdigest()[:12]
 
@@ -58,10 +58,12 @@ def get_all_products_with_history():
         latest = history_data.get('current') if history_data else None
 
         products.append({
-            'id': product_id,
+            'id': index,  # Use array index as ID
+            'hash_id': product_id,  # Keep hash for file lookup
             'config': product,
             'latest': latest,
-            'history_count': len(history_data.get('history', [])) if history_data else 0
+            'history_count': len(history_data.get('history', [])) if history_data else 0,
+            'history': history_data.get('history', []) if history_data else []
         })
 
     return products
@@ -239,43 +241,39 @@ def add_product():
     return redirect(url_for('index'))
 
 
-@app.route('/remove_product/<product_id>')
+@app.route('/remove_product/<int:product_id>')
 def remove_product(product_id):
     """Remove a product from tracking."""
     config = load_config()
 
-    # Find and remove product
-    for i, product in enumerate(config['products']):
-        import hashlib
-        pid = hashlib.md5(product['url'].encode()).hexdigest()[:12]
-        if pid == product_id:
-            removed = config['products'].pop(i)
-            save_config(config)
-            flash(f'Removed {removed["name"]} from tracking!', 'success')
-            break
+    # Remove product by index
+    if 0 <= product_id < len(config['products']):
+        removed = config['products'].pop(product_id)
+        save_config(config)
+        flash(f'Removed {removed["name"]} from tracking!', 'success')
+    else:
+        flash('Product not found!', 'error')
 
     return redirect(url_for('index'))
 
 
-@app.route('/history/<product_id>')
+@app.route('/history/<int:product_id>')
 def history(product_id):
     """View history for a specific product."""
     config = load_config()
 
-    # Find product config
-    product_config = None
-    for product in config.get('products', []):
-        import hashlib
-        pid = hashlib.md5(product['url'].encode()).hexdigest()[:12]
-        if pid == product_id:
-            product_config = product
-            break
-
-    if not product_config:
+    # Get product by index
+    if product_id < 0 or product_id >= len(config.get('products', [])):
         flash('Product not found!', 'error')
         return redirect(url_for('index'))
 
-    history_data = get_product_history(product_id)
+    product_config = config['products'][product_id]
+
+    # Calculate hash for file lookup
+    import hashlib
+    hash_id = hashlib.md5(product_config['url'].encode()).hexdigest()[:12]
+
+    history_data = get_product_history(hash_id)
 
     if not history_data:
         flash('No history data available yet!', 'warning')
