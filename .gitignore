@@ -33,3 +33,6 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# Test files
+cookies.txt
