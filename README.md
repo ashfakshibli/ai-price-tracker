@@ -2,10 +2,16 @@
 
 A simple price tracking tool that monitors product prices and availability on web pages.
 
+## 🚀 Quick Links
+
+- **[Heroku Deployment Guide](HEROKU_DEPLOYMENT.md)** - Deploy to Heroku with automated CI/CD
+- **[Security Documentation](SECURITY.md)** - Security best practices and configuration
+
 ## Features
 
 - **Real browser automation** using Selenium for JavaScript-heavy sites
 - **Web dashboard** for managing tracked products and viewing history
+- **Heroku deployment ready** with automated CI/CD from GitHub Actions
 - Waits for pages to fully load before extracting data
 - Tracks product prices, variants, and availability
 - Uses **Claude 3.5 Haiku** (cost-effective) to intelligently extract product information from rendered HTML
@@ -199,3 +205,56 @@ pip install --upgrade selenium webdriver-manager
 1. **"Chrome not found"**: Make sure Google Chrome is installed
 2. **Timeouts**: Check your internet connection and try accessing the URL in your browser
 3. **No price detected**: The website structure may have changed; check the `data/` folder for what was captured
+
+## Deployment to Heroku
+
+### Quick Start
+
+```bash
+# Run the automated setup script
+./heroku_setup.sh
+```
+
+This will:
+- Create a Heroku app
+- Configure buildpacks (Python, Chrome, ChromeDriver)
+- Set environment variables
+- Prepare for deployment
+
+### Automated CI/CD
+
+Push to the `main` branch to automatically deploy via GitHub Actions:
+
+1. Configure GitHub Secrets (see [HEROKU_DEPLOYMENT.md](HEROKU_DEPLOYMENT.md))
+2. Push changes to `main` branch
+3. GitHub Actions automatically deploys to Heroku
+
+### Manual Deployment
+
+```bash
+# Add Heroku remote
+heroku git:remote --app your-app-name
+
+# Deploy
+git push heroku main
+
+# View logs
+heroku logs --tail --app your-app-name
+```
+
+For detailed instructions, see **[HEROKU_DEPLOYMENT.md](HEROKU_DEPLOYMENT.md)**.
+
+## Security
+
+🔒 **Important**: Never commit sensitive information to git!
+
+- API keys are stored as environment variables
+- `.env` file is excluded from git (`.gitignore`)
+- Heroku config vars for production secrets
+- GitHub Actions uses encrypted secrets
+
+See **[SECURITY.md](SECURITY.md)** for complete security guidelines.
+
+## License
+
+MIT License - Feel free to use and modify!

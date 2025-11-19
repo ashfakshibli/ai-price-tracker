@@ -22,7 +22,9 @@ env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+
+# Use environment variable for secret key, fallback to random for local dev
+app.secret_key = os.environ.get('FLASK_SECRET_KEY') or os.urandom(24)
 
 LOG_FILE = "tracker.log"
 
@@ -494,13 +496,18 @@ def run_now():
 
 
 if __name__ == '__main__':
+    # Get port from environment variable (Heroku) or use default
+    port = int(os.environ.get('PORT', 5000))
+    
     print("=" * 60)
     print("AI Price Tracker Dashboard")
     print("=" * 60)
     print("\nUsing SQLite database: tracker.db")
     print("Starting web server...")
-    print("Dashboard URL: http://localhost:5000")
+    print(f"Dashboard URL: http://localhost:{port}")
     print("\nPress Ctrl+C to stop the server")
     print("=" * 60)
 
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Disable debug mode in production (when PORT env var is set by Heroku)
+    debug_mode = os.environ.get('PORT') is None
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
