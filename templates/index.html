@@ -160,36 +160,68 @@
             </h2>
 
             {% if cron_status.is_heroku %}
-                <!-- Heroku Scheduler Instructions -->
-                <div class="status-box" style="background: #f0f9ff; border: 1px solid #0ea5e9;">
-                    <strong style="color: #0369a1;">☁️ Running on Heroku</strong>
-                    <p style="color: #075985;">Use Heroku Scheduler addon for automatic tracking</p>
-                </div>
+                <!-- Heroku Scheduler Status -->
+                {% if cron_status.scheduler_jobs and cron_status.scheduler_jobs.installed %}
+                    <div class="status-box status-active">
+                        <strong>✓ Heroku Scheduler is installed</strong>
+                        <p style="color: #059669; margin: 0.5rem 0;">
+                            Plan: {{ cron_status.scheduler_jobs.plan }}<br>
+                            Status: {{ cron_status.scheduler_jobs.state }}
+                        </p>
+                    </div>
 
-                <div style="margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                    <h3 style="font-size: 0.95rem; margin-top: 0; margin-bottom: 0.75rem; color: #374151;">📋 Setup Instructions</h3>
-                    
-                    <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #4b5563;"><strong>Step 1:</strong> Install Heroku Scheduler addon</p>
-                    <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; overflow-x: auto;">heroku addons:create scheduler:standard --app {{ heroku_app_name or 'your-app-name' }}</code>
-                    
-                    <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #4b5563;"><strong>Step 2:</strong> Open Scheduler dashboard</p>
-                    <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; overflow-x: auto;">heroku addons:open scheduler --app {{ heroku_app_name or 'your-app-name' }}</code>
-                    
-                    <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #4b5563;"><strong>Step 3:</strong> Create a new job with this command:</p>
-                    <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; margin-bottom: 0.5rem; overflow-x: auto;">python price_tracker.py</code>
-                    
-                    <p style="font-size: 0.85rem; color: #6b7280; margin-top: 0.75rem; margin-bottom: 0;">
-                        <strong>Recommended frequencies:</strong> Every 10 minutes, Every hour, or Every day
-                    </p>
-                </div>
+                    <div style="margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <h3 style="font-size: 0.95rem; margin-top: 0; margin-bottom: 0.75rem; color: #374151;">📋 Manage Scheduled Jobs</h3>
+                        
+                        <p style="font-size: 0.9rem; color: #4b5563; margin-bottom: 1rem;">
+                            To view, edit, or create scheduled jobs, open the Scheduler dashboard:
+                        </p>
+                        
+                        <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; overflow-x: auto;">heroku addons:open scheduler --app {{ heroku_app_name or 'your-app-name' }}</code>
+                        
+                        <p style="font-size: 0.85rem; color: #6b7280; margin: 0;">
+                            <strong>Job command:</strong> <code style="background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 3px;">python price_tracker.py</code>
+                        </p>
+                    </div>
 
-                <div style="margin-top: 1rem;">
-                    <form method="POST" action="{{ url_for('run_now') }}">
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">
-                            <i data-feather="play"></i> Run Manual Check Now
-                        </button>
-                    </form>
-                </div>
+                    <div style="margin-top: 1rem;">
+                        <form method="POST" action="{{ url_for('run_now') }}">
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                                <i data-feather="play"></i> Run Manual Check Now
+                            </button>
+                        </form>
+                    </div>
+                {% else %}
+                    <div class="status-box" style="background: #fef3c7; border: 1px solid #f59e0b;">
+                        <strong style="color: #92400e;">⚠️ Heroku Scheduler not installed</strong>
+                        <p style="color: #78350f;">Install Scheduler addon to enable automatic tracking</p>
+                    </div>
+
+                    <div style="margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <h3 style="font-size: 0.95rem; margin-top: 0; margin-bottom: 0.75rem; color: #374151;">📋 Setup Instructions</h3>
+                        
+                        <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #4b5563;"><strong>Step 1:</strong> Install Heroku Scheduler addon</p>
+                        <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; overflow-x: auto;">heroku addons:create scheduler:standard --app {{ heroku_app_name or 'your-app-name' }}</code>
+                        
+                        <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #4b5563;"><strong>Step 2:</strong> Open Scheduler dashboard</p>
+                        <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; overflow-x: auto;">heroku addons:open scheduler --app {{ heroku_app_name or 'your-app-name' }}</code>
+                        
+                        <p style="font-size: 0.9rem; margin-bottom: 0.75rem; color: #4b5563;"><strong>Step 3:</strong> Create a new job with this command:</p>
+                        <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; margin-bottom: 0.5rem; overflow-x: auto;">python price_tracker.py</code>
+                        
+                        <p style="font-size: 0.85rem; color: #6b7280; margin-top: 0.75rem; margin-bottom: 0;">
+                            <strong>Recommended frequencies:</strong> Every 10 minutes, Every hour, or Every day
+                        </p>
+                    </div>
+
+                    <div style="margin-top: 1rem;">
+                        <form method="POST" action="{{ url_for('run_now') }}">
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                                <i data-feather="play"></i> Run Manual Check Now
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
             {% elif cron_status.active %}
                 <div class="status-box status-active">
                     <strong>✓ Automatic tracking is enabled</strong>

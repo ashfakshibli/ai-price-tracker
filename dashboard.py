@@ -7,6 +7,8 @@ Now uses SQLite database with SQLAlchemy ORM for data persistence.
 
 import os
 import subprocess
+import json
+import requests
 from datetime import datetime
 from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -71,11 +73,50 @@ def get_all_products_with_history():
         session.close()
 
 
+def get_heroku_scheduler_jobs():
+    """Check if Heroku Scheduler addon is installed and get basic info."""
+    try:
+        # Use Heroku CLI to check scheduler addon
+        app_name = os.environ.get('HEROKU_APP_NAME', 'ai-price-tracker').strip()
+        
+        result = subprocess.run(
+            ['heroku', 'addons', '--app', app_name, '--json'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode == 0:
+            addons = json.loads(result.stdout)
+            for addon in addons:
+                addon_name = addon.get('addon_service', {}).get('name', '')
+                if 'scheduler' in addon_name.lower():
+                    return {
+                        'installed': True,
+                        'name': addon.get('name', 'scheduler'),
+                        'plan': addon.get('plan', {}).get('name', 'standard'),
+                        'state': addon.get('state', 'unknown')
+                    }
+        
+        return {'installed': False}
+            
+    except Exception as e:
+        print(f"Error checking Heroku Scheduler: {e}")
+        return {'installed': False}
+
+
 def get_cron_status():
     """Check if cron job exists and get its frequency."""
     # Check if running on Heroku
     if os.environ.get('DYNO'):
-        return {'enabled': False, 'frequency': None, 'is_heroku': True}
+        # Fetch Heroku Scheduler jobs
+        scheduler_jobs = get_heroku_scheduler_jobs()
+        return {
+            'enabled': False, 
+            'frequency': None, 
+            'is_heroku': True,
+            'scheduler_jobs': scheduler_jobs
+        }
     
     try:
         result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
