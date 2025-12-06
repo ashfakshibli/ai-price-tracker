@@ -133,10 +133,12 @@ def index():
     """Main dashboard page."""
     products = get_all_products_with_history()
     cron_status = get_cron_status()
+    heroku_app_name = os.environ.get('HEROKU_APP_NAME', '')
 
     return render_template('index.html',
                          products=products,
-                         cron_status=cron_status)
+                         cron_status=cron_status,
+                         heroku_app_name=heroku_app_name)
 
 
 @app.route('/api/products')
