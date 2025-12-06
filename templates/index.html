@@ -362,6 +362,10 @@
                     body: formData
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 hideLoader();
@@ -373,8 +377,10 @@
                     // Reset form
                     addProductForm.reset();
 
-                    // Reload product list
+                    // Immediately reload the product list
+                    console.log('Reloading product list...');
                     await reloadProductList();
+                    console.log('Product list reloaded');
 
                     // Show debug sidebar with auto-refresh
                     if (window.startDebugTracking) {
@@ -394,11 +400,19 @@
     // Reload product list from server
     async function reloadProductList() {
         try {
+            console.log('Fetching products from API...');
             const response = await fetch('{{ url_for("api_products") }}');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            console.log('Received products:', data.products.length);
 
             // Update the products table
             updateProductsTable(data.products);
+            console.log('Table updated');
         } catch (error) {
             console.error('Error reloading products:', error);
         }
@@ -406,6 +420,7 @@
 
     // Update products table with new data
     function updateProductsTable(products) {
+        console.log('Updating table with', products.length, 'products');
         const card = document.querySelector('.left-column .card');
         const productCountEl = card.querySelector('h2');
 
@@ -418,17 +433,25 @@
         const existingTable = card.querySelector('.table-responsive');
         const existingEmpty = card.querySelector('p[style*="color: #888"]');
         
-        if (existingTable) existingTable.remove();
-        if (existingEmpty) existingEmpty.remove();
+        if (existingTable) {
+            console.log('Removing existing table');
+            existingTable.remove();
+        }
+        if (existingEmpty) {
+            console.log('Removing empty message');
+            existingEmpty.remove();
+        }
 
         if (products.length === 0) {
             // Show empty message
+            console.log('Showing empty message');
             const emptyMessage = document.createElement('p');
             emptyMessage.style.cssText = 'color: #888; text-align: center; padding: 2rem;';
             emptyMessage.textContent = 'No products tracked yet. Add one on the right to get started!';
             productCountEl.insertAdjacentElement('afterend', emptyMessage);
         } else {
             // Create table structure
+            console.log('Creating new table');
             const tableContainer = document.createElement('div');
             tableContainer.className = 'table-responsive';
             
