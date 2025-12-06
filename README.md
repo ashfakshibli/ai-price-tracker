@@ -67,12 +67,12 @@ echo 'export ANTHROPIC_API_KEY="your-api-key-here"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-4. Configure products to track in `config.json` (or use the web dashboard)
+4. Configure products to track using the web dashboard (see below)
 
 5. Run the tracker:
 ```bash
-# Using the helper script (automatically activates venv)
-./run_tracker.sh
+# Using the helper script
+./scripts/run_tracker.sh
 
 # OR manually with venv
 source venv/bin/activate
@@ -84,8 +84,8 @@ python price_tracker.py
 The tracker includes a web dashboard for easy management:
 
 ```bash
-# Using the helper script (automatically activates venv)
-./run_dashboard.sh
+# Using the helper script
+./scripts/run_dashboard.sh
 
 # OR manually with venv
 source venv/bin/activate
@@ -123,7 +123,7 @@ Then open http://localhost:5000 in your browser.
 Run the tracker once:
 ```bash
 # Using the helper script
-./run_tracker.sh
+./scripts/run_tracker.sh
 
 # OR with venv activated
 source venv/bin/activate
@@ -135,12 +135,16 @@ python price_tracker.py
 Add to your crontab:
 ```bash
 # Run every hour (using helper script that activates venv)
-0 * * * * cd /path/to/ai-price-tracker && ./run_tracker.sh >> tracker.log 2>&1
+0 * * * * cd /path/to/ai-price-tracker && ./scripts/run_tracker.sh >> tracker.log 2>&1
 ```
 
 ## Configuration
 
-Edit `config.json` to add products to track:
+Products are managed through the web dashboard. The app uses SQLite database (`tracker.db`) to store all product and price history data.
+
+### Legacy JSON Configuration
+
+If you prefer using JSON configuration:
 ```json
 {
   "products": [
@@ -255,6 +259,43 @@ For detailed instructions, see **[HEROKU_DEPLOYMENT.md](HEROKU_DEPLOYMENT.md)**.
 
 See **[SECURITY.md](SECURITY.md)** for complete security guidelines.
 
+## Project Structure
+
+```
+ai-price-tracker/
+├── dashboard.py              # Flask web application
+├── price_tracker.py          # Core price tracking logic
+├── models.py                 # SQLAlchemy database models
+├── favicon_utils.py          # Favicon fetching utilities
+├── requirements.txt          # Python dependencies
+├── runtime.txt              # Python version for Heroku
+├── Procfile                 # Heroku process configuration
+├── .env.example             # Environment variables template
+├── .slugignore              # Files to exclude from Heroku deployment
+├── .gitignore               # Files to exclude from git
+├── README.md                # This file
+├── HEROKU_DEPLOYMENT.md     # Heroku deployment guide
+├── SECURITY.md              # Security documentation
+├── scripts/                 # Helper scripts
+│   ├── run_dashboard.sh     # Start web dashboard
+│   ├── run_tracker.sh       # Run price tracker
+│   ├── setup.sh             # Initial setup
+│   └── setup_cron.sh        # Setup cron jobs
+├── tests/                   # Test files
+│   ├── test_*.py            # Various unit tests
+│   └── README.md            # Test documentation
+├── templates/               # HTML templates
+│   ├── base.html
+│   ├── index.html
+│   ├── history.html
+│   └── logs.html
+├── static/                  # Static assets
+│   └── favicons/            # Cached favicons
+├── .github/                 # GitHub Actions
+│   └── workflows/
+│       └── deploy.yml       # CI/CD pipeline
+└── tracker.db               # SQLite database (auto-created)
+```
 ## License
 
 MIT License - Feel free to use and modify!

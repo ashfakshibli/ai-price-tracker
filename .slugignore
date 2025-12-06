@@ -1,19 +1,8 @@
 # Test files
-test_*.py
-test_*.html
-
-# Documentation files (keep README.md)
-CurrentImplementation.md
-Tasks.md
-example_output.txt
+tests/
 
 # Development scripts
-setup.sh
-activate_venv.sh
-run_dashboard.sh
-run_tracker.sh
-setup_cron.sh
-migrate_*.py
+scripts/
 
 # Data files (production will use own database)
 data/
