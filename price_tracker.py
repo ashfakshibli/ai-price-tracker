@@ -48,9 +48,13 @@ class PriceTracker:
         self.client = Anthropic(api_key=api_key)
 
     def _load_config(self, config_path: str) -> Dict:
-        """Load configuration from JSON file."""
-        with open(config_path, 'r') as f:
-            return json.load(f)
+        """Load configuration from JSON file. Returns empty dict if file doesn't exist."""
+        try:
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            # Config file not found - return empty config (used when working with database)
+            return {"products": []}
 
     def _get_product_id(self, url: str) -> str:
         """Generate a unique ID for a product based on its URL."""
