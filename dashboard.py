@@ -76,32 +76,59 @@ def get_all_products_with_history():
 def get_heroku_scheduler_jobs():
     """Check if Heroku Scheduler addon is installed and get basic info."""
     try:
-        # Use Heroku CLI to check scheduler addon
+        # Check if we're on Heroku
+        if not os.environ.get('DYNO'):
+            return {'installed': False}
+        
         app_name = os.environ.get('HEROKU_APP_NAME', 'ai-price-tracker').strip()
+        api_key = os.environ.get('HEROKU_API_KEY', '').strip()
         
-        result = subprocess.run(
-            ['heroku', 'addons', '--app', app_name, '--json'],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
+        # Try Heroku Platform API if we have credentials
+        if api_key and app_name:
+            headers = {
+                'Authorization': f'Bearer {api_key}',
+                'Accept': 'application/vnd.heroku+json; version=3'
+            }
+            
+            addons_url = f'https://api.heroku.com/apps/{app_name}/addons'
+            response = requests.get(addons_url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                addons = response.json()
+                for addon in addons:
+                    addon_service_name = addon.get('addon_service', {}).get('name', '')
+                    if 'scheduler' in addon_service_name.lower():
+                        return {
+                            'installed': True,
+                            'name': addon.get('name', 'scheduler'),
+                            'plan': addon.get('plan', {}).get('name', 'scheduler:standard'),
+                            'state': addon.get('state', 'provisioned')
+                        }
         
-        if result.returncode == 0:
-            addons = json.loads(result.stdout)
-            for addon in addons:
-                addon_name = addon.get('addon_service', {}).get('name', '')
-                if 'scheduler' in addon_name.lower():
-                    return {
-                        'installed': True,
-                        'name': addon.get('name', 'scheduler'),
-                        'plan': addon.get('plan', {}).get('name', 'standard'),
-                        'state': addon.get('state', 'unknown')
-                    }
+        # Fallback: Check for SCHEDULER_URL or other scheduler-related env vars
+        # Heroku automatically sets attachment env vars when addon is provisioned
+        scheduler_env_vars = [key for key in os.environ.keys() if 'SCHEDULER' in key.upper()]
+        if scheduler_env_vars:
+            return {
+                'installed': True,
+                'name': 'scheduler',
+                'plan': 'scheduler:standard',
+                'state': 'provisioned'
+            }
         
         return {'installed': False}
             
     except Exception as e:
         print(f"Error checking Heroku Scheduler: {e}")
+        # Fallback: Check for scheduler env vars
+        scheduler_env_vars = [key for key in os.environ.keys() if 'SCHEDULER' in key.upper()]
+        if scheduler_env_vars:
+            return {
+                'installed': True,
+                'name': 'scheduler',
+                'plan': 'scheduler:standard',
+                'state': 'provisioned'
+            }
         return {'installed': False}
 
 
