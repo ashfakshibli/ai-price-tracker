@@ -85,10 +85,21 @@ class PriceTracker:
                 # Initialize the Chrome driver
                 # On Heroku with Chrome for Testing buildpack, use the bundled ChromeDriver
                 # Otherwise use ChromeDriverManager for local development
-                chromedriver_path = os.environ.get('CHROMEDRIVER_PATH')
-                if chromedriver_path and os.path.exists(chromedriver_path):
-                    # Heroku: Use Chrome for Testing buildpack's ChromeDriver
-                    print(f"   🔧 Using Heroku ChromeDriver at: {chromedriver_path}")
+                chromedriver_path = None
+                
+                # Check common Heroku Chrome for Testing buildpack paths
+                heroku_paths = [
+                    '/app/.chrome-for-testing/chromedriver-linux64/chromedriver',
+                    os.environ.get('CHROMEDRIVER_PATH', '')
+                ]
+                
+                for path in heroku_paths:
+                    if path and os.path.exists(path):
+                        chromedriver_path = path
+                        print(f"   🔧 Using Heroku ChromeDriver at: {chromedriver_path}")
+                        break
+                
+                if chromedriver_path:
                     service = Service(chromedriver_path)
                 else:
                     # Local: Use ChromeDriverManager
