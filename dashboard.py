@@ -73,6 +73,10 @@ def get_all_products_with_history():
 
 def get_cron_status():
     """Check if cron job exists and get its frequency."""
+    # Check if running on Heroku
+    if os.environ.get('DYNO'):
+        return {'enabled': False, 'frequency': None, 'is_heroku': True}
+    
     try:
         result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
         if result.returncode == 0 and 'price_tracker.py' in result.stdout:
@@ -408,6 +412,12 @@ def logs():
 def enable_cron():
     """Enable cron job with specified frequency."""
     try:
+        # Check if running on Heroku
+        if os.environ.get('DYNO'):
+            flash('⚠️ Cron is not available on Heroku. Please use Heroku Scheduler addon instead. '
+                  'Run: heroku addons:create scheduler:standard --app your-app-name', 'warning')
+            return redirect(url_for('index'))
+        
         # Get frequency from form (in minutes)
         frequency = int(request.form.get('frequency', 60))
 
@@ -456,6 +466,11 @@ def enable_cron():
 def disable_cron():
     """Disable cron job."""
     try:
+        # Check if running on Heroku
+        if os.environ.get('DYNO'):
+            flash('⚠️ Cron is not available on Heroku. Use Heroku Scheduler addon to manage scheduled tasks.', 'warning')
+            return redirect(url_for('index'))
+        
         # Get existing crontab
         result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
 
