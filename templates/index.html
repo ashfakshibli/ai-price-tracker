@@ -406,27 +406,52 @@
 
     // Update products table with new data
     function updateProductsTable(products) {
-        const tbody = document.querySelector('.card table tbody');
-        const emptyMessage = document.querySelector('.card p[style*="color: #888"]');
-        const tableContainer = document.querySelector('.table-responsive');
-        const productCountEl = document.querySelector('.card h2');
+        const card = document.querySelector('.left-column .card');
+        const productCountEl = card.querySelector('h2');
 
         // Update product count in heading
         if (productCountEl) {
             productCountEl.innerHTML = `📊 Tracked Products (${products.length})`;
         }
 
+        // Remove existing table or empty message
+        const existingTable = card.querySelector('.table-responsive');
+        const existingEmpty = card.querySelector('p[style*="color: #888"]');
+        
+        if (existingTable) existingTable.remove();
+        if (existingEmpty) existingEmpty.remove();
+
         if (products.length === 0) {
             // Show empty message
-            if (tableContainer) tableContainer.style.display = 'none';
-            if (emptyMessage) emptyMessage.style.display = 'block';
+            const emptyMessage = document.createElement('p');
+            emptyMessage.style.cssText = 'color: #888; text-align: center; padding: 2rem;';
+            emptyMessage.textContent = 'No products tracked yet. Add one on the right to get started!';
+            productCountEl.insertAdjacentElement('afterend', emptyMessage);
         } else {
-            // Hide empty message and show table
-            if (emptyMessage) emptyMessage.style.display = 'none';
-            if (tableContainer) tableContainer.style.display = 'block';
-
-            if (tbody) {
-                tbody.innerHTML = products.map(product => {
+            // Create table structure
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'table-responsive';
+            
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Latest Price</th>
+                        <th>Status</th>
+                        <th>Last Checked</th>
+                        <th>History</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+            
+            tableContainer.appendChild(table);
+            productCountEl.insertAdjacentElement('afterend', tableContainer);
+            
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = products.map(product => {
                     const latestPrice = product.latest ? `$${parseFloat(product.latest.price).toFixed(2)}` : '<span style="color: #888;">Not checked yet</span>';
                     const variants = product.latest && product.latest.variants ? `<br><small>${product.latest.variants.length} variant(s)</small>` : '';
 
@@ -487,10 +512,9 @@
                     `;
                 }).join('');
 
-                // Re-initialize Feather icons
-                if (typeof feather !== 'undefined') {
-                    feather.replace();
-                }
+            // Re-initialize Feather icons
+            if (typeof feather !== 'undefined') {
+                feather.replace();
             }
         }
     }
