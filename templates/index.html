@@ -163,26 +163,65 @@
                 <!-- Heroku Scheduler Status -->
                 {% if cron_status.scheduler_jobs and cron_status.scheduler_jobs.installed %}
                     <div class="status-box status-active">
-                        <strong>✓ Heroku Scheduler is installed</strong>
-                        <p style="color: #059669; margin: 0.5rem 0;">
-                            Plan: {{ cron_status.scheduler_jobs.plan }}<br>
-                            Status: {{ cron_status.scheduler_jobs.state }}
+                        <strong>✓ Heroku Scheduler is Active</strong>
+                        <p style="color: #059669; margin: 0.5rem 0 0 0;">
+                            Plan: {{ cron_status.scheduler_jobs.plan }}
                         </p>
                     </div>
 
-                    <div style="margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                        <h3 style="font-size: 0.95rem; margin-top: 0; margin-bottom: 0.75rem; color: #374151;">📋 Manage Scheduled Jobs</h3>
-                        
-                        <p style="font-size: 0.9rem; color: #4b5563; margin-bottom: 1rem;">
-                            To view, edit, or create scheduled jobs, open the Scheduler dashboard:
-                        </p>
-                        
-                        <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; overflow-x: auto;">heroku addons:open scheduler --app {{ heroku_app_name or 'your-app-name' }}</code>
-                        
-                        <p style="font-size: 0.85rem; color: #6b7280; margin: 0;">
-                            <strong>Job command:</strong> <code style="background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 3px;">python price_tracker.py</code>
-                        </p>
-                    </div>
+                    {% if cron_status.scheduler_jobs.jobs and cron_status.scheduler_jobs.jobs|length > 0 %}
+                        <!-- Display scheduled jobs -->
+                        <div style="margin-top: 1rem; padding: 1rem; background: #f0fdf4; border-radius: 8px; border: 1px solid #86efac;">
+                            <h3 style="font-size: 0.95rem; margin-top: 0; margin-bottom: 0.75rem; color: #166534;">
+                                <i data-feather="calendar" style="width: 16px; height: 16px;"></i> Scheduled Jobs
+                            </h3>
+                            
+                            {% for job in cron_status.scheduler_jobs.jobs %}
+                            <div style="padding: 0.75rem; background: white; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #d1fae5;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                    <div style="flex: 1;">
+                                        <strong style="color: #065f46; font-size: 0.9rem;">{{ job.command or 'python price_tracker.py' }}</strong>
+                                        <div style="margin-top: 0.25rem; color: #059669; font-size: 0.85rem;">
+                                            📅 Schedule: <strong>{{ job.frequency or 'Every hour' }}</strong>
+                                        </div>
+                                        {% if job.next_run %}
+                                        <div style="margin-top: 0.25rem; color: #047857; font-size: 0.85rem;">
+                                            ⏰ Next run: <strong>{{ job.next_run }}</strong>
+                                        </div>
+                                        {% endif %}
+                                        {% if job.last_run %}
+                                        <div style="margin-top: 0.25rem; color: #6b7280; font-size: 0.8rem;">
+                                            Last run: {{ job.last_run }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% if job.state %}
+                                    <span class="badge" style="background: #d1fae5; color: #065f46; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                        {{ job.state }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <!-- No jobs configured -->
+                        <div style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;">
+                            <h3 style="font-size: 0.95rem; margin-top: 0; margin-bottom: 0.75rem; color: #92400e;">
+                                ⚠️ No Scheduled Jobs
+                            </h3>
+                            <p style="font-size: 0.9rem; color: #78350f; margin-bottom: 0.75rem;">
+                                Scheduler is installed but no jobs are configured. Create a job to enable automatic tracking.
+                            </p>
+                            
+                            <p style="font-size: 0.9rem; margin-bottom: 0.5rem; color: #78350f;"><strong>Open Scheduler dashboard:</strong></p>
+                            <code style="display: block; padding: 0.5rem; background: white; border: 1px solid #f59e0b; border-radius: 4px; font-size: 0.85rem; margin-bottom: 0.75rem; overflow-x: auto;">heroku addons:open scheduler --app {{ heroku_app_name or 'your-app-name' }}</code>
+                            
+                            <p style="font-size: 0.85rem; color: #92400e; margin: 0;">
+                                <strong>Job command to use:</strong> <code style="background: #fef3c7; padding: 0.2rem 0.4rem; border-radius: 3px; border: 1px solid #f59e0b;">python price_tracker.py</code>
+                            </p>
+                        </div>
+                    {% endif %}
 
                     <div style="margin-top: 1rem;">
                         <form method="POST" action="{{ url_for('run_now') }}">
