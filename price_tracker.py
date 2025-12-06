@@ -83,7 +83,17 @@ class PriceTracker:
                 chrome_options.add_experimental_option('prefs', prefs)
 
                 # Initialize the Chrome driver
-                service = Service(ChromeDriverManager().install())
+                # On Heroku with Chrome for Testing buildpack, use the bundled ChromeDriver
+                # Otherwise use ChromeDriverManager for local development
+                chromedriver_path = os.environ.get('CHROMEDRIVER_PATH')
+                if chromedriver_path and os.path.exists(chromedriver_path):
+                    # Heroku: Use Chrome for Testing buildpack's ChromeDriver
+                    print(f"   🔧 Using Heroku ChromeDriver at: {chromedriver_path}")
+                    service = Service(chromedriver_path)
+                else:
+                    # Local: Use ChromeDriverManager
+                    service = Service(ChromeDriverManager().install())
+                
                 driver = webdriver.Chrome(service=service, options=chrome_options)
 
                 # Set page load timeout
